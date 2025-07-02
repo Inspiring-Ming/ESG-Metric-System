@@ -1,0 +1,174 @@
+{
+    "matching_summary": {
+      "source_framework": "SASB Semiconductors",
+      "target_database": "EUROFIDAI ESG Raw Data on Corporations", 
+      "analysis_date": "2025-01-28",
+      "total_sasb_metrics": 21,
+      "direct_regulatory_metrics": 14,
+      "calculated_regulatory_metrics": 7,
+      "input_metrics_identified": 8,
+      "eurofidai_total_metrics": 105,
+      "direct_matches_found": 12,
+      "input_matches_found": 6
+    },
+    
+    "direct_regulatory_metrics": [
+      {
+        "metric_name": "Gross Global Scope 1 Emissions",
+        "eurofidai_variable": "CO2DIRECTSCOPE1",
+        "confidence_score": 100,
+        "unit_compatible": "Yes - both measure CO2e in metric tonnes",
+        "alignment_reason": "Exact match for Scope 1 greenhouse gas emissions measurement"
+      },
+      {
+        "metric_name": "Perfluorinated Compounds Emissions",
+        "eurofidai_variable": "ANALYTICESTIMATEDCO2TOTAL",
+        "confidence_score": 60,
+        "unit_compatible": "Yes - both measure CO2e in metric tonnes",
+        "alignment_reason": "PFC emissions included in total CO2e but not separately tracked"
+      },
+      {
+        "metric_name": "Total Energy Consumed",
+        "eurofidai_variable": "ENERGYUSETOTAL",
+        "confidence_score": 100,
+        "unit_compatible": "Yes - both use gigajoules (GJ)",
+        "alignment_reason": "Perfect match for total energy consumption measurement"
+      },
+      {
+        "metric_name": "Total Water Withdrawn",
+        "eurofidai_variable": "WATERWITHDRAWALTOTAL",
+        "confidence_score": 100,
+        "unit_compatible": "Yes - both measure water volume (1000x scaling)",
+        "alignment_reason": "Exact match for total water withdrawal with unit conversion"
+      },
+      {
+        "metric_name": "Total Water Consumed",
+        "eurofidai_variable": "WATER_USE_PAI_M10",
+        "confidence_score": 40,
+        "unit_compatible": "No - EUROFIDAI is intensity metric, SASB absolute",
+        "alignment_reason": "Related to water consumption but different measurement approach"
+      },
+      {
+        "metric_name": "Hazardous Waste Amount",
+        "eurofidai_variable": "HAZARDOUSWASTE",
+        "confidence_score": 100,
+        "unit_compatible": "Yes - both use metric tonnes",
+        "alignment_reason": "Perfect match for hazardous waste quantity measurement"
+      },
+      {
+        "metric_name": "Scope 1 Emissions Strategy",
+        "eurofidai_variable": "TARGETS_EMISSIONS",
+        "confidence_score": 70,
+        "unit_compatible": "Different - SASB discussion vs EUROFIDAI Yes/No",
+        "alignment_reason": "EUROFIDAI tracks emission targets which relates to strategy"
+      },
+      {
+        "metric_name": "Workforce Health Hazard Efforts",
+        "eurofidai_variable": "EMPLOYEE_HEALTH_SAFETY_POLICY",
+        "confidence_score": 60,
+        "unit_compatible": "Different - SASB discussion vs EUROFIDAI Yes/No",
+        "alignment_reason": "EUROFIDAI tracks health safety policies related to hazard management"
+      },
+      {
+        "metric_name": "Health Safety Legal Losses",
+        "eurofidai_variable": "EMPLOYEEFATALITIES",
+        "confidence_score": 30,
+        "unit_compatible": "No - monetary vs count metrics",
+        "alignment_reason": "Both relate to safety outcomes but different measurement types"
+      },
+      {
+        "metric_name": "Server Processor Energy Efficiency",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI lacks semiconductor-specific product metrics"
+      },
+      {
+        "metric_name": "Desktop Processor Energy Efficiency", 
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI lacks semiconductor-specific product metrics"
+      },
+      {
+        "metric_name": "Laptop Processor Energy Efficiency",
+        "eurofidai_variable": "No Match", 
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI lacks semiconductor-specific product metrics"
+      },
+      {
+        "metric_name": "Critical Materials Risk Management",
+        "eurofidai_variable": "ENV_SUPPLY_CHAIN_MGT",
+        "confidence_score": 50,
+        "unit_compatible": "Different - SASB discussion vs EUROFIDAI Yes/No",
+        "alignment_reason": "EUROFIDAI tracks environmental supply chain criteria related to materials"
+      },
+      {
+        "metric_name": "Anti-Competitive Legal Losses",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A", 
+        "alignment_reason": "EUROFIDAI does not track legal proceeding financial losses"
+      }
+    ],
+  
+    "input_metrics": [
+      {
+        "metric_name": "purchased grid electricity consumption",
+        "eurofidai_variable": "ELECTRICITYPURCHASED",
+        "confidence_score": 100,
+        "unit_compatible": "Yes - both measure energy in gigajoules",
+        "alignment_reason": "Direct input for Grid Electricity Rate Model calculation"
+      },
+      {
+        "metric_name": "total energy consumption",
+        "eurofidai_variable": "ENERGYUSETOTAL", 
+        "confidence_score": 100,
+        "unit_compatible": "Yes - both measure energy in gigajoules",
+        "alignment_reason": "Denominator for Grid Electricity Rate Model calculation"
+      },
+      {
+        "metric_name": "renewable energy consumption",
+        "eurofidai_variable": "RENEWENERGYCONSUMED",
+        "confidence_score": 100,
+        "unit_compatible": "Yes - both measure energy in gigajoules", 
+        "alignment_reason": "Numerator for Renewable Energy Rate Model calculation"
+      },
+      {
+        "metric_name": "water withdrawn in high stress regions",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI does not classify water sources by stress level"
+      },
+      {
+        "metric_name": "water consumed in high stress regions", 
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI does not classify water sources by stress level"
+      },
+      {
+        "metric_name": "hazardous waste recycled",
+        "eurofidai_variable": "WASTE_RECYCLED",
+        "confidence_score": 70,
+        "unit_compatible": "Yes - both measure waste in metric tonnes",
+        "alignment_reason": "Covers total waste recycling, approximates hazardous waste recycling"
+      },
+      {
+        "metric_name": "employees requiring work visa",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI does not track visa status of employees"
+      },
+      {
+        "metric_name": "revenue from products with declarable substances",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A", 
+        "alignment_reason": "EUROFIDAI does not track product-specific revenue breakdowns"
+      }
+    ]
+  }

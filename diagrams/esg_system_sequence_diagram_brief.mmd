@@ -1,0 +1,41 @@
+sequenceDiagram
+    participant User
+    participant Web Interface
+    participant API Gateway
+    participant Knowledge Graph Service
+    participant Calculation Service
+    participant Data Retrieval Service
+
+    Note over User,Data Retrieval Service: ESG Knowledge Graph System - Core Workflow
+
+    User->>Web Interface: Access ESG analysis system
+    Web Interface->>API Gateway: Load industries & frameworks
+    API Gateway->>Knowledge Graph Service: Query available options (CQ1, CQ2)
+    Knowledge Graph Service->>API Gateway: Return industries & categories
+    API Gateway->>Web Interface: Display selection options
+    Web Interface->>User: Show industry & company selection
+
+    User->>Web Interface: Select industry, company & metrics
+    Web Interface->>API Gateway: Request metric calculations
+    API Gateway->>Knowledge Graph Service: Determine calculation methods (CQ3, CQ4)
+    
+    alt Direct Measurement
+        Knowledge Graph Service->>Data Retrieval Service: Access external dataset (CQ7)
+        Data Retrieval Service->>API Gateway: Return measured values
+    else Model Calculation
+        Knowledge Graph Service->>Calculation Service: Execute model calculations (CQ5, CQ6)
+        Calculation Service->>Data Retrieval Service: Gather required inputs (CQ7)
+        Data Retrieval Service->>Calculation Service: Return input values
+        Calculation Service->>API Gateway: Return calculated results
+    end
+
+    API Gateway->>API Gateway: Store results in memory
+    API Gateway->>Web Interface: Return calculation results
+    Web Interface->>User: Display ESG metrics & analysis
+
+    User->>Web Interface: Generate comprehensive report
+    Web Interface->>API Gateway: Request report generation
+    API Gateway->>Knowledge Graph Service: Gather framework context
+    API Gateway->>Calculation Service: Compile all metrics
+    API Gateway->>Web Interface: Return complete ESG report
+    Web Interface->>User: Display final ESG analysis 

@@ -1,0 +1,156 @@
+{
+  "timestamp": "2025-06-29T23:50:30.318347",
+  "evaluation_type": "comprehensive_system_performance",
+  "cq_performance": {
+    "queries": {
+      "CQ1": {
+        "avg_time_ms": 39.8,
+        "min_time_ms": 10.13,
+        "max_time_ms": 147.36,
+        "description": "Reporting Framework by Industry",
+        "status": "success"
+      },
+      "CQ2": {
+        "avg_time_ms": 21.64,
+        "min_time_ms": 14.27,
+        "max_time_ms": 41.56,
+        "description": "Categories by Framework",
+        "status": "success"
+      },
+      "CQ3": {
+        "avg_time_ms": 16.15,
+        "min_time_ms": 15.36,
+        "max_time_ms": 17.96,
+        "description": "Metrics by Category",
+        "status": "success"
+      },
+      "CQ4": {
+        "avg_time_ms": 62.8,
+        "min_time_ms": 45.92,
+        "max_time_ms": 113.54,
+        "description": "Metric Calculation Method",
+        "status": "success"
+      },
+      "CQ5": {
+        "avg_time_ms": 19.66,
+        "min_time_ms": 16.73,
+        "max_time_ms": 23.21,
+        "description": "Model Input Datapoints",
+        "status": "success"
+      },
+      "CQ7": {
+        "avg_time_ms": 27.19,
+        "min_time_ms": 25.58,
+        "max_time_ms": 28.21,
+        "description": "Datapoint Original Source",
+        "status": "success"
+      }
+    },
+    "performance": {
+      "total_cqs_tested": 7,
+      "successful_cqs": 6,
+      "avg_cq_time_ms": 31.21,
+      "fastest_cq_ms": 16.15,
+      "slowest_cq_ms": 62.8,
+      "cq_success_rate": 85.71
+    }
+  },
+  "api_performance": {
+    "endpoints": {
+      "industries": {
+        "endpoint": "/industries",
+        "response_time_ms": 5.318164825439453,
+        "status": "success"
+      },
+      "companies": {
+        "endpoint": "/industries/semiconductors/companies",
+        "response_time_ms": 17.375946044921875,
+        "status": "success"
+      },
+      "frameworks": {
+        "endpoint": "/industries/semiconductors/reporting-frameworks",
+        "response_time_ms": 11.081933975219727,
+        "status": "success"
+      },
+      "categories": {
+        "endpoint": "/reporting-frameworks/semiconductors/categories",
+        "response_time_ms": 17.15683937072754,
+        "status": "success"
+      },
+      "metrics": {
+        "endpoint": "/categories/GHG%20Emissions/metrics-detailed?industry=semiconductors",
+        "response_time_ms": 13.252735137939453,
+        "status": "success"
+      },
+      "calculate": {
+        "endpoint": "/calculate",
+        "response_time_ms": 130.67007064819336,
+        "status": "success"
+      },
+      "reports": {
+        "endpoint": "/reports/generate",
+        "response_time_ms": 16.462087631225586,
+        "status": "success"
+      }
+    },
+    "performance": {
+      "total_apis_tested": 7,
+      "successful_apis": 7,
+      "avg_api_time_ms": 30.19,
+      "fastest_api_ms": 5.32,
+      "slowest_api_ms": 130.67,
+      "api_success_rate": 100.0
+    }
+  },
+  "service_performance": {
+    "services": {
+      "data_service": {
+        "avg_response_time_ms": 9.01,
+        "success_rate": 100.0,
+        "status": "success"
+      },
+      "knowledge_graph_service": {
+        "avg_response_time_ms": 8.23,
+        "success_rate": 100.0,
+        "status": "success"
+      },
+      "calculation_service": {
+        "avg_response_time_ms": 101.71,
+        "success_rate": 100.0,
+        "status": "success"
+      },
+      "report_service": {
+        "avg_response_time_ms": 23.1,
+        "success_rate": 100.0,
+        "status": "success"
+      }
+    },
+    "performance": {
+      "total_services_tested": 4,
+      "successful_services": 4,
+      "service_success_rate": 100.0
+    }
+  },
+  "integration_performance": {
+    "scenarios": {
+      "complete_workflow": {
+        "total_time_ms": 22.38,
+        "success": true,
+        "steps_completed": 3,
+        "total_steps": 3,
+        "status": "success"
+      }
+    },
+    "performance": {
+      "avg_workflow_time_ms": 22.38,
+      "workflow_success_rate": 100
+    }
+  },
+  "visualizations": [
+    "evaluation_results/figures/cq_query_performance.png",
+    "evaluation_results/figures/api_performance.png",
+    "evaluation_results/figures/service_performance.png",
+    "evaluation_results/figures/system_performance_analysis.png"
+  ],
+  "evaluation_time_seconds": 6.28
+}

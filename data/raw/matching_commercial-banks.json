@@ -1,0 +1,166 @@
+{
+    "matching_summary": {
+      "source_framework": "SASB Commercial Banks",
+      "target_database": "EUROFIDAI ESG Raw Data on Corporations",
+      "analysis_date": "2025-01-28",
+      "total_regulatory_metrics": 21,
+      "direct_regulatory_metrics": 19,
+      "calculated_regulatory_metrics": 2,
+      "input_metrics_identified": 2,
+      "direct_matches_found": 8,
+      "input_matches_found": 0
+    },
+    
+    "direct_regulatory_metrics": [
+      {
+        "metric_name": "Number Data Breaches",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI does not track specific data breach incidents"
+      },
+      {
+        "metric_name": "Account Holders Affected",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI does not track data breach impact metrics"
+      },
+      {
+        "metric_name": "Data Security Risk Approach",
+        "eurofidai_variable": "POLICY_DATA_PRIVACY",
+        "confidence_score": 60,
+        "unit_compatible": "Different - SASB discussion vs EUROFIDAI Yes/No",
+        "alignment_reason": "EUROFIDAI tracks data privacy policies which relates to security approach"
+      },
+      {
+        "metric_name": "Small Business Loan Count",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI does not track banking-specific loan portfolio metrics"
+      },
+      {
+        "metric_name": "Small Business Loan Amount",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI does not track banking-specific loan portfolio metrics"
+      },
+      {
+        "metric_name": "Past Due Loan Count",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI does not track banking-specific loan performance metrics"
+      },
+      {
+        "metric_name": "Past Due Loan Amount",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI does not track banking-specific loan performance metrics"
+      },
+      {
+        "metric_name": "No Cost Checking Accounts",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI does not track banking product offerings"
+      },
+      {
+        "metric_name": "Financial Literacy Participants",
+        "eurofidai_variable": "ANALYTICTOTALDONATIONS",
+        "confidence_score": 30,
+        "unit_compatible": "No - count vs monetary percentage",
+        "alignment_reason": "EUROFIDAI tracks community donations which may include financial literacy programs"
+      },
+      {
+        "metric_name": "ESG Credit Analysis Approach",
+        "eurofidai_variable": "ENV_SUPPLY_CHAIN_MGT",
+        "confidence_score": 40,
+        "unit_compatible": "Different - SASB discussion vs EUROFIDAI Yes/No",
+        "alignment_reason": "EUROFIDAI tracks ESG criteria in supplier selection, related to ESG integration"
+      },
+      {
+        "metric_name": "Scope 1 Financed Emissions",
+        "eurofidai_variable": "CO2DIRECTSCOPE1",
+        "confidence_score": 50,
+        "unit_compatible": "Yes - both measure CO2e in metric tonnes",
+        "alignment_reason": "EUROFIDAI tracks direct emissions but not financed emissions specifically"
+      },
+      {
+        "metric_name": "Scope 2 Financed Emissions",
+        "eurofidai_variable": "CO2INDIRECTSCOPE2",
+        "confidence_score": 50,
+        "unit_compatible": "Yes - both measure CO2e in metric tonnes",
+        "alignment_reason": "EUROFIDAI tracks indirect emissions but not financed emissions specifically"
+      },
+      {
+        "metric_name": "Scope 3 Financed Emissions",
+        "eurofidai_variable": "CO2INDIRECTSCOPE3",
+        "confidence_score": 50,
+        "unit_compatible": "Yes - both measure CO2e in metric tonnes",
+        "alignment_reason": "EUROFIDAI tracks indirect emissions but not financed emissions specifically"
+      },
+      {
+        "metric_name": "Gross Exposure By Industry",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI does not track banking portfolio exposure by industry"
+      },
+      {
+        "metric_name": "Financed Emissions Methodology",
+        "eurofidai_variable": "TARGETS_EMISSIONS",
+        "confidence_score": 40,
+        "unit_compatible": "Different - SASB discussion vs EUROFIDAI Yes/No",
+        "alignment_reason": "EUROFIDAI tracks emission targets which relates to emissions methodology"
+      },
+      {
+        "metric_name": "Legal Proceedings Monetary Losses",
+        "eurofidai_variable": "BRIBERY_AND_CORRUPTION_PAI_INSUFFICIENT_ACTIONS",
+        "confidence_score": 30,
+        "unit_compatible": "No - monetary vs Yes/No",
+        "alignment_reason": "EUROFIDAI tracks corruption issues which may lead to legal proceedings"
+      },
+      {
+        "metric_name": "Whistleblower Policies Description",
+        "eurofidai_variable": "WHISTLEBLOWER_PROTECTION",
+        "confidence_score": 80,
+        "unit_compatible": "Different - SASB discussion vs EUROFIDAI Yes/No",
+        "alignment_reason": "EUROFIDAI tracks whistleblower protection policies directly"
+      },
+      {
+        "metric_name": "G-SIB Score By Category",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI does not track banking regulatory scores"
+      },
+      {
+        "metric_name": "Stress Test Integration Approach",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI does not track banking stress test methodologies"
+      }
+    ],
+  
+    "input_metrics": [
+      {
+        "metric_name": "personal data breaches",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI does not track data breach classifications"
+      },
+      {
+        "metric_name": "total gross exposure",
+        "eurofidai_variable": "No Match",
+        "confidence_score": 0,
+        "unit_compatible": "N/A",
+        "alignment_reason": "EUROFIDAI does not track banking portfolio exposure metrics"
+      }
+    ]
+  }

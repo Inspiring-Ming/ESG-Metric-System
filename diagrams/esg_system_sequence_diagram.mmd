@@ -1,0 +1,88 @@
+sequenceDiagram
+    participant User
+    participant Web Interface
+    participant API Gateway
+    participant Knowledge Graph Service
+    participant Calculation Service
+    participant Data Retrieval Service
+    participant Report Service
+
+    Note over User,Report Service: ESG Knowledge Graph System - Complete Workflow
+
+    User->>Web Interface: Open browser to localhost:8080
+    Web Interface->>API Gateway: GET /api/v1/industries
+    Note over Web Interface,API Gateway: CQ1: Which Reporting Framework applies to [industry]?<br/>CQ2: What Categories are included in [framework]?
+    API Gateway->>Knowledge Graph Service: CQ1 & CQ2 SPARQL queries
+    Knowledge Graph Service->>API Gateway: Available industries with framework info
+    API Gateway->>Web Interface: Industry list with metadata
+    Web Interface->>User: Display industry selection cards
+
+    User->>Web Interface: Select industry (semiconductors/commercial_banks)
+    Web Interface->>API Gateway: GET /api/v1/industries/{industry}/companies
+    API Gateway->>Data Retrieval Service: Load & filter external ESG dataset
+    Data Retrieval Service->>API Gateway: Filtered company list
+    API Gateway->>Web Interface: Companies with ESG data availability
+    Web Interface->>User: Display company selection
+
+    User->>Web Interface: Select company & explore categories
+    Web Interface->>API Gateway: GET /api/v1/industries/{industry}/categories
+    Note over Web Interface,API Gateway: CQ2: What Categories are included in [framework]?
+    API Gateway->>Knowledge Graph Service: CQ2 SPARQL query for framework-specific categories
+    Knowledge Graph Service->>API Gateway: Framework-specific categories (9 for semiconductors, 6 for commercial_banks)
+    API Gateway->>Web Interface: Category list with descriptions
+    Web Interface->>User: Display ESG category cards
+
+    User->>Web Interface: Select category & view metrics
+    Web Interface->>API Gateway: GET /api/v1/industries/{industry}/categories/{category}/metrics
+    Note over Web Interface,API Gateway: CQ3: Which Metrics are classified under [category]?
+    API Gateway->>Knowledge Graph Service: CQ3 SPARQL query for metrics by category
+    Knowledge Graph Service->>API Gateway: Metrics list with calculation methods
+    API Gateway->>Web Interface: Metrics with calculation types (direct_measurement vs calculation_model)
+    Web Interface->>User: Display metric selection with calculation indicators
+
+    User->>Web Interface: Choose metrics & calculate
+    Web Interface->>API Gateway: POST /api/v1/calculate with selected metrics
+    Note over Web Interface,API Gateway: CQ4: How is the value of [metric] calculated or directly measured?
+    API Gateway->>Knowledge Graph Service: CQ4 SPARQL query for calculation methods
+
+    alt Direct Measurement Method
+        Knowledge Graph Service->>API Gateway: Returns "direct_measurement" method
+        Note over API Gateway,Knowledge Graph Service: CQ7: What is the original Datasource for [datapoint]?
+        API Gateway->>Knowledge Graph Service: CQ7 SPARQL query for datasource mapping
+        Knowledge Graph Service->>API Gateway: DatasetVariable to datasource mapping
+        API Gateway->>Data Retrieval Service: Access external dataset with mapping
+        Data Retrieval Service->>API Gateway: Direct measurement value
+    else Calculation Model Method
+        Knowledge Graph Service->>API Gateway: Returns "calculation_model" method with model name
+        Note over Web Interface,API Gateway: CQ5: What Datapoints are required as inputs for [model]?
+        API Gateway->>Knowledge Graph Service: CQ5 SPARQL query for model inputs
+        Knowledge Graph Service->>API Gateway: Model equation & required inputs list
+        Note over API Gateway,Calculation Service: CQ6: Which Implementation is used to execute [model]?
+        API Gateway->>Calculation Service: CQ6 query for model implementation details
+        Calculation Service->>API Gateway: Implementation details & performance characteristics
+        
+        loop For each required input
+            Note over API Gateway,Knowledge Graph Service: CQ7: What is the original Datasource for [input datapoint]?
+            API Gateway->>Knowledge Graph Service: CQ7 SPARQL query for input datasource mapping
+            Knowledge Graph Service->>API Gateway: DatasetVariable to datasource mapping for input
+            API Gateway->>Data Retrieval Service: Access external dataset for input value
+            Data Retrieval Service->>API Gateway: Input value
+        end
+        
+        API Gateway->>Calculation Service: Execute calculation with model & inputs
+        Calculation Service->>API Gateway: Calculated result
+    end
+
+    API Gateway->>API Gateway: Store results in calculation memory
+    API Gateway->>Web Interface: Calculation results with method transparency
+    Web Interface->>User: Display results with calculation traceability
+
+    User->>Web Interface: Generate comprehensive report
+    Web Interface->>API Gateway: POST /api/v1/reports/generate
+    API Gateway->>Report Service: Create comprehensive ESG report
+    Report Service->>Knowledge Graph Service: Gather complete framework context
+    Report Service->>Calculation Service: Retrieve all calculated metrics
+    Report Service->>Data Retrieval Service: Access supporting data lineage
+    Report Service->>API Gateway: Complete ESG report with data sources
+    API Gateway->>Web Interface: Final comprehensive report
+    Web Interface->>User: Display complete ESG analysis report 
