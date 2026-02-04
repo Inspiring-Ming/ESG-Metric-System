@@ -74,22 +74,12 @@ def main():
         
         if args.eval_only:
             print("📊 RUNNING EVALUATION ONLY (--eval-only flag detected)")
-            from src.evaluation.performance_evaluator import ComprehensivePerformanceEvaluator
-            
-            evaluator = ComprehensivePerformanceEvaluator(data_service, kg_service, calc_service)
-            print("   ✅ Comprehensive Performance Evaluator ready")
-            print()
-            
-            results = evaluator.run_comprehensive_evaluation(use_two_part_evaluation=False)
-            
-            if 'error' in results:
-                print(f"❌ Evaluation failed: {results['error']}")
-                return
-            
+            from src.evaluation.performance_evaluator import create_comprehensive_performance_diagram
+
+            create_comprehensive_performance_diagram()
+
             print("\n🎯 EVALUATION COMPLETED SUCCESSFULLY!")
-            print(f"📁 Results saved to: evaluation_results/")
-            print(f"📊 Visualizations: {len(results.get('visualizations', []))} charts generated")
-            print(f"⏱️ Total time: {results.get('evaluation_time_seconds', 0):.2f}s")
+            print(f"📁 Diagram saved to: src/evaluation/comprehensive_performance_analysis.png")
             return
         
         # Start web server
