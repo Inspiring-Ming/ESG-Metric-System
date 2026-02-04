@@ -4,6 +4,7 @@ An ontology-driven ESG (Environmental, Social, and Governance) reporting system 
 
 ## Table of Contents
 
+- [Live Demo](#live-demo)
 - [Overview](#overview)
 - [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
@@ -12,6 +13,14 @@ An ontology-driven ESG (Environmental, Social, and Governance) reporting system 
 - [Competency Questions (CQ1–CQ7)](#competency-questions-cq1cq7)
 - [Adding New Industries](#adding-new-industries)
 - [Configuration](#configuration)
+
+---
+
+## Live Demo
+
+A hosted version is available at: **https://esgalaxy.com.ngrok.dev**
+
+> Note: The demo runs on a local machine via ngrok tunnel and may not be available at all times.
 
 ---
 
