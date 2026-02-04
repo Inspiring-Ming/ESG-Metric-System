@@ -241,39 +241,66 @@ class ReportService:
         return str(value)
 
     def _get_method_label(self, calc: Dict) -> str:
-        """Get a short method label from calculation data"""
+        """Get a short method label from calculation data.
+        For direct measurements: 'Direct Measurement'
+        For calculated models: the model name (e.g. 'GHGEmissionIntensityModel')
+        """
         method = calc.get("calculation_method", calc.get("data_source", ""))
         if not method:
             method = ""
         method_lower = str(method).lower()
         if "direct" in method_lower or "external" in method_lower:
-            return "Direct"
+            return "Direct Measurement"
         elif "calculated" in method_lower or "model" in method_lower:
-            return "Calculated"
-        return "Direct"
+            model_name = calc.get("model_name", "")
+            if model_name:
+                return model_name
+            return "Calculated Model"
+        return "Direct Measurement"
 
     def _get_dataset_variable(self, calc: Dict) -> str:
-        """Get the dataset variable used"""
-        var = calc.get("dataset_variable", "")
-        if var:
-            return str(var)
-        # Try to extract from other fields
-        data_source = calc.get("data_source", "")
-        if "external" in str(data_source).lower():
-            return calc.get("metric_code", "External data")
-        return "Model inputs"
+        """Get the dataset variable(s) used.
+        For direct measurements: the single dataset variable.
+        For calculated models: the input metrics' dataset variables.
+        """
+        method = calc.get("calculation_method", "")
+        method_lower = str(method).lower()
+
+        if "calculated" in method_lower or "model" in method_lower:
+            # For calculated models, show input metrics' dataset variables
+            input_vars = calc.get("input_dataset_variables", {})
+            if input_vars:
+                return ", ".join(input_vars.values())
+            return "N/A"
+        else:
+            # For direct measurement, show the single dataset variable
+            var = calc.get("dataset_variable", "")
+            if var:
+                return str(var)
+            data_source = calc.get("data_source", "")
+            if "external" in str(data_source).lower():
+                return calc.get("metric_code", "External data")
+            return "N/A"
 
     def _get_model_formula(self, calc: Dict) -> str:
-        """Get the model/formula description"""
-        method = self._get_method_label(calc)
-        if method == "Direct":
-            var = self._get_dataset_variable(calc)
+        """Get the model equation/formula.
+        For direct measurements: 'Direct: {variable_name}'
+        For calculated models: the actual equation from CQ5.
+        """
+        method = calc.get("calculation_method", "")
+        method_lower = str(method).lower()
+
+        if "direct" in method_lower or "external" in method_lower:
+            var = calc.get("dataset_variable", "N/A")
             return f"Direct: {var}"
         else:
-            model = calc.get("model_name", calc.get("metric_name", ""))
+            equation = calc.get("model_equation", "")
+            if equation:
+                return equation
+            model = calc.get("model_name", "")
             if model:
-                return f"Model: {model}"
-            return "Calculated Model"
+                return model
+            return "N/A"
 
     # ==================== WORD DOCUMENT GENERATION ====================
 
@@ -450,8 +477,7 @@ class ReportService:
 
             for i, calc in enumerate(successful, start=1):
                 table.cell(i, 0).text = calc.get("metric_name", "N/A")
-                method = self._get_method_label(calc)
-                table.cell(i, 1).text = "Calculated Model" if method == "Calculated" else "Direct Measurement"
+                table.cell(i, 1).text = self._get_method_label(calc)
                 table.cell(i, 2).text = self._get_dataset_variable(calc)
                 table.cell(i, 3).text = self._get_model_formula(calc)
 
@@ -827,16 +853,15 @@ class ReportService:
                 ]
             ]
             for calc in successful:
-                cell_style = ParagraphStyle('TD', fontSize=9, leading=12)
-                method = self._get_method_label(calc)
+                cell_style = ParagraphStyle('TD', fontSize=8, leading=11)
                 lineage_data.append([
                     Paragraph(calc.get("metric_name", "N/A"), cell_style),
-                    Paragraph("Calculated Model" if method == "Calculated" else "Direct Measurement", cell_style),
+                    Paragraph(self._get_method_label(calc), cell_style),
                     Paragraph(self._get_dataset_variable(calc), cell_style),
                     Paragraph(self._get_model_formula(calc), cell_style),
                 ])
 
-            lineage_table = Table(lineage_data, colWidths=[1.8 * inch, 1.3 * inch, 1.5 * inch, 1.9 * inch])
+            lineage_table = Table(lineage_data, colWidths=[1.5 * inch, 1.5 * inch, 1.5 * inch, 2 * inch])
             lineage_table.setStyle(make_table_style())
             story.append(lineage_table)
 
