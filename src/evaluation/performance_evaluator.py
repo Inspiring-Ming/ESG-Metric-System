@@ -63,7 +63,7 @@ class ComprehensivePerformanceEvaluator:
         
         # Use 2023 - Powerchip has complete data for both direct and model calculations
         self.test_year = "2023"  # All test metrics have verified data for this year
-        self.api_base_url = "http://localhost:8080/api/v1"
+        self.api_base_url = "http://localhost:8080/api"
 
     def run_comprehensive_evaluation(self) -> Dict[str, Any]:
         """Run comprehensive performance evaluation of all system components"""

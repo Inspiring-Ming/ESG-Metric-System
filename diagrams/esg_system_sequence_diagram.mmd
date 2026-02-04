@@ -10,7 +10,7 @@ sequenceDiagram
     Note over User,Report Service: ESG Knowledge Graph System - Complete Workflow
 
     User->>Web Interface: Open browser to localhost:8080
-    Web Interface->>API Gateway: GET /api/v1/industries
+    Web Interface->>API Gateway: GET /api/KGservice/industries
     Note over Web Interface,API Gateway: CQ1: Which Reporting Framework applies to [industry]?<br/>CQ2: What Categories are included in [framework]?
     API Gateway->>Knowledge Graph Service: CQ1 & CQ2 SPARQL queries
     Knowledge Graph Service->>API Gateway: Available industries with framework info
@@ -18,14 +18,14 @@ sequenceDiagram
     Web Interface->>User: Display industry selection cards
 
     User->>Web Interface: Select industry (semiconductors/commercial_banks)
-    Web Interface->>API Gateway: GET /api/v1/industries/{industry}/companies
+    Web Interface->>API Gateway: GET /api/DRservice/industries/{industry}/companies
     API Gateway->>Data Retrieval Service: Load & filter external ESG dataset
     Data Retrieval Service->>API Gateway: Filtered company list
     API Gateway->>Web Interface: Companies with ESG data availability
     Web Interface->>User: Display company selection
 
     User->>Web Interface: Select company & explore categories
-    Web Interface->>API Gateway: GET /api/v1/industries/{industry}/categories
+    Web Interface->>API Gateway: GET /api/KGservice/industries/{industry}/categories
     Note over Web Interface,API Gateway: CQ2: What Categories are included in [framework]?
     API Gateway->>Knowledge Graph Service: CQ2 SPARQL query for framework-specific categories
     Knowledge Graph Service->>API Gateway: Framework-specific categories (9 for semiconductors, 6 for commercial_banks)
@@ -33,7 +33,7 @@ sequenceDiagram
     Web Interface->>User: Display ESG category cards
 
     User->>Web Interface: Select category & view metrics
-    Web Interface->>API Gateway: GET /api/v1/industries/{industry}/categories/{category}/metrics
+    Web Interface->>API Gateway: GET /api/KGservice/categories/{category}/metrics
     Note over Web Interface,API Gateway: CQ3: Which Metrics are classified under [category]?
     API Gateway->>Knowledge Graph Service: CQ3 SPARQL query for metrics by category
     Knowledge Graph Service->>API Gateway: Metrics list with calculation methods
@@ -41,7 +41,7 @@ sequenceDiagram
     Web Interface->>User: Display metric selection with calculation indicators
 
     User->>Web Interface: Choose metrics & calculate
-    Web Interface->>API Gateway: POST /api/v1/calculate with selected metrics
+    Web Interface->>API Gateway: POST /api/CSservice/calculate with selected metrics
     Note over Web Interface,API Gateway: CQ4: How is the value of [metric] calculated or directly measured?
     API Gateway->>Knowledge Graph Service: CQ4 SPARQL query for calculation methods
 
@@ -78,7 +78,7 @@ sequenceDiagram
     Web Interface->>User: Display results with calculation traceability
 
     User->>Web Interface: Generate comprehensive report
-    Web Interface->>API Gateway: POST /api/v1/reports/generate
+    Web Interface->>API Gateway: POST /api/RSservice/reports/generate
     API Gateway->>Report Service: Create comprehensive ESG report
     Report Service->>Knowledge Graph Service: Gather complete framework context
     Report Service->>Calculation Service: Retrieve all calculated metrics

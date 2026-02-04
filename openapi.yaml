@@ -1,0 +1,2005 @@
+openapi: 3.0.3
+
+info:
+  title: OntoMetric System API
+  version: 1.0.0
+  description: |
+    Knowledge graph-driven ESG (Environmental, Social, Governance) reporting system
+    with SASB framework support. This API provides access to ESG metrics, calculation
+    services, and compliance report generation powered by an RDF knowledge graph and
+    SPARQL-based Competency Questions (CQ1-CQ7).
+
+    ## Architecture
+
+    The API is organized into four service domains:
+
+    | Service | Prefix | Responsibility |
+    |---------|--------|----------------|
+    | **KGservice** | `/api/KGservice/` | Knowledge graph queries (CQ1-CQ7) |
+    | **DRservice** | `/api/DRservice/` | External data retrieval (companies, years) |
+    | **CSservice** | `/api/CSservice/` | Metric calculation engine |
+    | **RSservice** | `/api/RSservice/` | ESG report generation |
+    | **SYSservice** | `/api/SYSservice/` | System health, info, analytics |
+    | **EVALservice** | `/api/EVALservice/` | Performance evaluation |
+
+    ## Competency Questions (CQ1-CQ7)
+
+    The knowledge graph answers seven competency questions that drive the system:
+
+    - **CQ1**: Which reporting framework applies to a given industry?
+    - **CQ2**: What ESG categories does the framework include?
+    - **CQ3**: Which metrics belong to a category?
+    - **CQ4**: How is a metric measured (direct or calculated)?
+    - **CQ5**: What input data does a calculation model require?
+    - **CQ6**: Where is the model implemented?
+    - **CQ7**: What is the original data source for a datapoint?
+
+    ## Data Policy
+
+    All metric values come from real external datasets (Eurofidai, WRDS). No synthetic
+    or demo data is provided. When data is unavailable, the API returns a clear reason.
+
+  contact:
+    name: OntoMetric Research Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+
+tags:
+  - name: KGservice
+    description: |
+      Knowledge Graph Service — queries the RDF knowledge graph using SPARQL to answer
+      Competency Questions (CQ1-CQ7). Returns industry frameworks, ESG categories,
+      metrics, and calculation methods.
+  - name: DRservice
+    description: |
+      Data Retrieval Service — retrieves company data and data availability from
+      external datasets (Eurofidai environment data, WRDS financial data).
+  - name: CSservice
+    description: |
+      Calculation Service — executes ESG metric calculations using either direct
+      measurement lookup or model-based computation. Supports caching and duplicate
+      prevention.
+  - name: RSservice
+    description: |
+      Report Service — generates comprehensive ESG compliance reports with data
+      lineage, quality assessment, and improvement recommendations.
+  - name: SYSservice
+    description: |
+      System Service — health checks, system info, OpenAPI spec, and analytics
+      (performance metrics, data coverage, API usage).
+  - name: EVALservice
+    description: |
+      Evaluation Service — comprehensive performance evaluation, competency question
+      benchmarking, and quick system summaries.
+
+paths:
+  # ============================================================
+  # KGservice — Knowledge Graph Service
+  # ============================================================
+
+  /api/KGservice/industries:
+    get:
+      tags: [KGservice]
+      operationId: getIndustries
+      summary: List available industries
+      description: |
+        Returns all industries supported by the system, with their reporting framework
+        and category count. Uses CQ1 (framework lookup) and CQ2 (category listing)
+        from the RDF knowledge graph.
+      responses:
+        "200":
+          description: Industries retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Industry"
+                  count:
+                    type: integer
+                    example: 2
+                  service_used:
+                    type: string
+                    example: knowledge_graph_service
+                  cq_queries_used:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "CQ1: Reporting Framework"
+                      - "CQ2: Categories"
+                  message:
+                    type: string
+              example:
+                status: success
+                data:
+                  - industry_id: semiconductors
+                    industry_name: Semiconductors
+                    reporting_framework: SASB Semiconductors
+                    categories_count: 9
+                    total_companies_available: "Available in Step 2"
+                    description: "ESG reporting for semiconductors industry using SASB Semiconductors framework"
+                    data_source: knowledge_graph_service_cq1_cq2
+                  - industry_id: commercial_banks
+                    industry_name: Commercial Banks
+                    reporting_framework: SASB Commercial Banks
+                    categories_count: 5
+                    total_companies_available: "Available in Step 2"
+                    description: "ESG reporting for commercial banks industry using SASB Commercial Banks framework"
+                    data_source: knowledge_graph_service_cq1_cq2
+                count: 2
+                service_used: knowledge_graph_service
+                cq_queries_used:
+                  - "CQ1: Reporting Framework"
+                  - "CQ2: Categories"
+                message: "Industries retrieved from RDF Knowledge Graph - Select an industry to proceed"
+        "500":
+          description: Knowledge graph access error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/KGservice/industries/{industry}/frameworks:
+    get:
+      tags: [KGservice]
+      operationId: getFrameworksByIndustry
+      summary: Get reporting framework for an industry (CQ1)
+      description: |
+        Returns the SASB reporting framework applicable to the specified industry.
+        Uses CQ1 to query the RDF knowledge graph for framework assignment, and
+        CQ2 to include a preview of ESG categories.
+      parameters:
+        - $ref: "#/components/parameters/IndustryPath"
+      responses:
+        "200":
+          description: Framework retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Framework"
+                  service_used:
+                    type: string
+                    example: knowledge_graph_service
+                  cq_query_used:
+                    type: string
+                    example: "CQ1: Reporting Framework by Industry"
+                  message:
+                    type: string
+              example:
+                status: success
+                data:
+                  - id: sasb_semiconductors
+                    name: SASB Semiconductors
+                    industry: semiconductors
+                    categories_count: 9
+                    description: "SASB framework for semiconductors industry"
+                    cq1_source: "Retrieved via CQ1: What reporting framework is used for this industry?"
+                    categories_preview:
+                      - Greenhouse Gas Emissions
+                      - Energy Management in Manufacturing
+                      - Water Management
+                    service_used: knowledge_graph_service
+                    cq_query: CQ1
+                service_used: knowledge_graph_service
+                cq_query_used: "CQ1: Reporting Framework by Industry"
+                message: "Reporting framework retrieved from RDF Knowledge Graph for semiconductors"
+        "500":
+          description: Knowledge graph access error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/KGservice/frameworks/{framework}/categories:
+    get:
+      tags: [KGservice]
+      operationId: getCategoriesByFramework
+      summary: Get ESG categories in a framework (CQ2)
+      description: |
+        Returns the ESG categories defined within a reporting framework. Uses CQ2
+        to retrieve categories and CQ3 to include metric counts and sample metric
+        names for each category.
+      parameters:
+        - name: framework
+          in: path
+          required: true
+          description: |
+            Framework identifier in snake_case format.
+            Supported values: `sasb_semiconductors`, `sasb_commercial_banks`
+          schema:
+            type: string
+            enum: [sasb_semiconductors, sasb_commercial_banks]
+          example: sasb_semiconductors
+      responses:
+        "200":
+          description: Categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  framework_id:
+                    type: string
+                    example: sasb_semiconductors
+                  industry:
+                    type: string
+                    example: semiconductors
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Category"
+                  count:
+                    type: integer
+                  service_used:
+                    type: string
+                  cq_queries_used:
+                    type: array
+                    items:
+                      type: string
+                  message:
+                    type: string
+              example:
+                status: success
+                framework_id: sasb_semiconductors
+                industry: semiconductors
+                data:
+                  - category_id: greenhouse_gas_emissions
+                    category_name: Greenhouse Gas Emissions
+                    metrics_count: 3
+                    sample_metrics:
+                      - Gross Global Scope 1 Emissions
+                      - Scope 2 Emissions
+                      - GHG Emission Intensity
+                    description: "ESG metrics related to greenhouse gas emissions in semiconductors industry"
+                    service_used: knowledge_graph_service
+                    cq_queries: ["CQ2", "CQ3"]
+                count: 9
+                service_used: knowledge_graph_service
+                cq_queries_used:
+                  - "CQ2: Categories by Framework"
+                  - "CQ3: Metrics by Category"
+                message: "ESG categories retrieved from RDF Knowledge Graph for semiconductors framework"
+        "404":
+          description: Framework not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                status: error
+                error_category: FRAMEWORK_NOT_FOUND
+                user_message: Framework not found
+                suggestion: Please select a valid framework
+                technical_message: "Framework unknown_framework not supported"
+        "500":
+          description: Knowledge graph access error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/KGservice/categories/{category}/metrics:
+    get:
+      tags: [KGservice]
+      operationId: getMetricsByCategory
+      summary: Get metrics in a category with calculation details (CQ3-CQ7)
+      description: |
+        Returns all ESG metrics within a category, enriched with calculation method
+        information. For each metric, CQ3 retrieves the metric list, CQ4 determines
+        whether it uses direct measurement or a calculation model, and CQ5 provides
+        model input requirements when applicable.
+      parameters:
+        - name: category
+          in: path
+          required: true
+          description: |
+            Category identifier in snake_case format.
+            Examples: `greenhouse_gas_emissions`, `energy_management_in_manufacturing`,
+            `water_management`, `waste_management`
+          schema:
+            type: string
+          example: greenhouse_gas_emissions
+        - name: industry
+          in: query
+          required: true
+          description: Industry identifier
+          schema:
+            type: string
+            enum: [semiconductors, commercial_banks]
+          example: semiconductors
+      responses:
+        "200":
+          description: Metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  category_id:
+                    type: string
+                  category_name:
+                    type: string
+                  industry:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Metric"
+                  count:
+                    type: integer
+                  cq_queries_used:
+                    type: array
+                    items:
+                      type: string
+                  message:
+                    type: string
+              example:
+                status: success
+                category_id: greenhouse_gas_emissions
+                category_name: Greenhouse Gas Emissions
+                industry: semiconductors
+                data:
+                  - metric_id: TC-SC-110a.1
+                    metric_code: TC-SC-110a.1
+                    metric_name: Gross Global Scope 1 Emissions
+                    description: Gross global Scope 1 emissions
+                    unit: "Metric tonnes (t) CO\u2082-e"
+                    metric_type: Quantitative
+                    has_calculation_model: false
+                    calculation_method: direct_measurement
+                    model_name: Direct access
+                    input_datapoints: []
+                    model_formula: Direct access from external dataset
+                    data_access_type: Direct access
+                    complexity: Low
+                  - metric_id: TC-SC-110a.2
+                    metric_code: TC-SC-110a.2
+                    metric_name: GHG Emission Intensity
+                    description: GHG emission intensity metric
+                    unit: "tonnes CO\u2082-e per million USD"
+                    metric_type: Quantitative
+                    has_calculation_model: true
+                    calculation_method: calculation_model
+                    model_name: GHGEmissionIntensityModel
+                    input_datapoints:
+                      - Gross Global Scope 1 Emissions
+                      - Scope 2 Emissions
+                      - Revenue
+                    model_formula: "(scope1_emissions + scope2_emissions) / revenue"
+                    data_access_type: Model-based calculation
+                    complexity: High
+                count: 3
+                cq_queries_used:
+                  - "CQ3: Metrics by category"
+                  - "CQ4: Calculation method"
+                  - "CQ5: Input datapoints"
+                  - "CQ6: Model formula"
+                  - "CQ7: Semantic mapping"
+                message: "Detailed metrics for Greenhouse Gas Emissions category with calculation methods"
+        "400":
+          description: Missing required industry parameter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Industry parameter required
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ============================================================
+  # DRservice — Data Retrieval Service
+  # ============================================================
+
+  /api/DRservice/industries/{industry}/companies:
+    get:
+      tags: [DRservice]
+      operationId: getCompaniesByIndustry
+      summary: Get companies with available data for an industry
+      description: |
+        Returns up to 20 companies from external datasets that have ESG data
+        available for the specified industry. Each company includes the list of
+        years for which data exists.
+      parameters:
+        - $ref: "#/components/parameters/IndustryPath"
+      responses:
+        "200":
+          description: Companies retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  industry_id:
+                    type: string
+                  industry_name:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Company"
+                  count:
+                    type: integer
+                    description: Number of companies returned (max 20)
+                  total_available:
+                    type: integer
+                    description: Total companies in dataset for this industry
+                  service_used:
+                    type: string
+                    example: enhanced_data_retrieval_service
+                  message:
+                    type: string
+              example:
+                status: success
+                industry_id: semiconductors
+                industry_name: Semiconductors
+                data:
+                  - company_name: STMicroelectronics NV
+                    years_available: ["2023", "2022", "2021", "2020"]
+                    year_count: 4
+                    latest_year: "2023"
+                    earliest_year: "2020"
+                    data_source: enhanced_data_retrieval_service
+                  - company_name: Intel Corp
+                    years_available: ["2023", "2022"]
+                    year_count: 2
+                    latest_year: "2023"
+                    earliest_year: "2022"
+                    data_source: enhanced_data_retrieval_service
+                count: 2
+                total_available: 45
+                service_used: enhanced_data_retrieval_service
+                message: "Companies with available years for semiconductors industry"
+        "400":
+          description: No data available for industry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: External data access error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/DRservice/companies/{company_name}/years:
+    get:
+      tags: [DRservice]
+      operationId: getCompanyYears
+      summary: Get available reporting years for a company
+      description: |
+        Returns the list of years for which ESG data exists for the specified company,
+        sorted in descending order (most recent first).
+      parameters:
+        - name: company_name
+          in: path
+          required: true
+          description: Company name (URL-encoded if it contains spaces)
+          schema:
+            type: string
+          example: STMicroelectronics NV
+      responses:
+        "200":
+          description: Years retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  company_name:
+                    type: string
+                  years:
+                    type: array
+                    items:
+                      type: string
+                    description: Available years, descending order
+                  count:
+                    type: integer
+                  latest_year:
+                    type: string
+                    nullable: true
+                  earliest_year:
+                    type: string
+                    nullable: true
+                  service_used:
+                    type: string
+                  message:
+                    type: string
+              example:
+                status: success
+                company_name: STMicroelectronics NV
+                years: ["2023", "2022", "2021", "2020"]
+                count: 4
+                latest_year: "2023"
+                earliest_year: "2020"
+                service_used: data_retrieval_service
+                message: "Available years for STMicroelectronics NV"
+        "400":
+          description: Error accessing year data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/DRservice/data-availability/{company_name}/{year}:
+    get:
+      tags: [DRservice]
+      operationId: checkDataAvailability
+      summary: Check metric data availability for a company and year
+      description: |
+        Checks which ESG metrics have data available in external datasets for
+        a specific company and reporting year. Returns both available and
+        unavailable metrics with guidance for the frontend.
+      parameters:
+        - name: company_name
+          in: path
+          required: true
+          schema:
+            type: string
+          example: STMicroelectronics NV
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "2023"
+        - name: industry
+          in: query
+          required: false
+          description: Industry identifier (defaults to semiconductors)
+          schema:
+            type: string
+            enum: [semiconductors, commercial_banks]
+            default: semiconductors
+      responses:
+        "200":
+          description: Availability check completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  company_name:
+                    type: string
+                  year:
+                    type: string
+                  industry:
+                    type: string
+                  framework:
+                    type: string
+                  data_availability:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        example: checked
+                      available_metrics:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            metric_name:
+                              type: string
+                            status:
+                              type: string
+                              enum: [available]
+                            data_source:
+                              type: string
+                      unavailable_metrics:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            metric_name:
+                              type: string
+                            status:
+                              type: string
+                              enum: [unavailable]
+                            reason:
+                              type: string
+                  frontend_guidance:
+                    type: object
+                    properties:
+                      selectable_metrics:
+                        type: array
+                        items:
+                          type: string
+                      disabled_metrics:
+                        type: array
+                        items:
+                          type: string
+                      suggestion:
+                        type: string
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/DRservice/data-availability/bulk:
+    post:
+      tags: [DRservice]
+      operationId: checkBulkDataAvailability
+      summary: Bulk check data availability for multiple companies
+      description: |
+        Checks data availability for multiple company/year combinations in a
+        single request. Useful for comparing data coverage across companies.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkAvailabilityRequest"
+            example:
+              checks:
+                - company_name: STMicroelectronics NV
+                  year: "2023"
+                  industry: semiconductors
+                - company_name: Intel Corp
+                  year: "2022"
+                  industry: semiconductors
+      responses:
+        "200":
+          description: Bulk check completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        company_name:
+                          type: string
+                        year:
+                          type: string
+                        industry:
+                          type: string
+                        availability:
+                          type: object
+                          properties:
+                            available_metrics:
+                              type: array
+                              items:
+                                type: object
+                            unavailable_metrics:
+                              type: array
+                              items:
+                                type: object
+                        selectable_count:
+                          type: integer
+                        unavailable_count:
+                          type: integer
+                  summary:
+                    type: object
+                    properties:
+                      total_checks:
+                        type: integer
+                      successful_checks:
+                        type: integer
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ============================================================
+  # CSservice — Calculation Service
+  # ============================================================
+
+  /api/CSservice/calculate:
+    post:
+      tags: [CSservice]
+      operationId: calculateMetrics
+      summary: Calculate ESG metrics for a company
+      description: |
+        Executes metric calculations for a specified company and year. The calculation
+        pipeline works as follows:
+
+        1. **CQ4** determines the calculation method (direct measurement or model-based)
+        2. For **direct measurements**: CQ7 maps the metric to an external dataset
+           variable, then looks up the value in CSV data
+        3. For **model-based calculations**: CQ5 identifies required inputs, each input
+           is recursively resolved, CQ6 loads the Python model implementation, and the
+           model is executed
+
+        Features:
+        - **Duplicate prevention**: Removes duplicate metric requests automatically
+        - **Caching**: Previously calculated metrics are returned from memory
+        - **Real data only**: No synthetic or demo values are generated
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CalculationRequest"
+            example:
+              industry: semiconductors
+              metrics:
+                - Gross Global Scope 1 Emissions
+                - Total Energy Consumed
+                - GHG Emission Intensity
+              company_name: STMicroelectronics NV
+              year: "2023"
+      responses:
+        "200":
+          description: Calculation completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalculationResponse"
+              example:
+                status: success
+                calculation_results:
+                  - metric_name: Gross Global Scope 1 Emissions
+                    metric_code: TC-SC-110a.1
+                    status: success
+                    value: 1245.67
+                    display_value: "1,245.67 Metric tonnes (t) CO\u2082-e"
+                    unit: "Metric tonnes (t) CO\u2082-e"
+                    company_name: STMicroelectronics NV
+                    year: "2023"
+                    calculation_method: direct_measurement
+                    data_source: external_dataset
+                    dataset_variable: CO2DIRECTSCOPE1
+                    calculation_time: 0.045
+                  - metric_name: GHG Emission Intensity
+                    metric_code: TC-SC-110a.2
+                    status: success
+                    value: 0.089
+                    display_value: "0.089 tonnes CO\u2082-e per million USD"
+                    unit: "tonnes CO\u2082-e per million USD"
+                    company_name: STMicroelectronics NV
+                    year: "2023"
+                    calculation_method: calculation_model
+                    data_source: calculated_from_real_data
+                    model_name: GHGEmissionIntensityModel
+                    calculation_time: 0.132
+                summary:
+                  company_name: STMicroelectronics NV
+                  year: "2023"
+                  industry: semiconductors
+                  metrics_requested: 3
+                  unique_metrics_processed: 3
+                  metrics_already_calculated: 0
+                  metrics_newly_calculated: 3
+                  metrics_with_real_data: 2
+                  metrics_calculated_from_real_data: 1
+                  metrics_unavailable: 0
+                  duplicates_removed: 0
+                  total_calculation_time: "0.234s"
+                  data_policy: "No demo data - real data only with clear reasons"
+                  duplicate_prevention: "Removed 0 duplicates, prevented 0 recalculations"
+                data_transparency:
+                  authenticity_policy: "No fake/demo data provided"
+                  unavailable_data_policy: "Clear reasons provided when data unavailable"
+                  calculation_engine: "Direct calculation service - no demo fallbacks"
+                  cache_policy: "Previously calculated metrics retrieved from memory"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+              examples:
+                missing_industry:
+                  summary: Missing industry
+                  value:
+                    status: error
+                    message: Industry is required
+                missing_metrics:
+                  summary: Missing metrics
+                  value:
+                    status: error
+                    message: At least one metric is required
+                missing_company:
+                  summary: Missing company
+                  value:
+                    status: error
+                    message: Company name is required
+                no_data:
+                  summary: No request body
+                  value:
+                    status: error
+                    message: No data provided
+        "500":
+          description: Calculation failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                  debug_info:
+                    type: object
+                    properties:
+                      error_type:
+                        type: string
+                      endpoint:
+                        type: string
+
+  # ============================================================
+  # RSservice — Report Service
+  # ============================================================
+
+  /api/RSservice/reports/generate:
+    post:
+      tags: [RSservice]
+      operationId: generateReport
+      summary: Generate an ESG compliance report
+      description: |
+        Generates a comprehensive ESG compliance report for a company, including
+        metric calculations, data lineage documentation, quality assessment, and
+        improvement recommendations. Pre-calculated metrics can be passed in to
+        avoid redundant computation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportRequest"
+            example:
+              industry: semiconductors
+              selected_metrics:
+                - Gross Global Scope 1 Emissions
+                - Total Energy Consumed
+              company_info:
+                company_name: STMicroelectronics NV
+                year: "2023"
+              all_calculated_metrics:
+                - metric_name: Gross Global Scope 1 Emissions
+                  value: 1245.67
+                  status: success
+      responses:
+        "200":
+          description: Report generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  report_id:
+                    type: string
+                    description: Unique report identifier
+                    example: esg_report_20240115_143022
+                  report:
+                    $ref: "#/components/schemas/Report"
+                  generation_time:
+                    type: string
+                    description: Time to generate the report
+                    example: "2.345s"
+                  download_url:
+                    type: string
+                    description: URL to retrieve the report later
+                    example: /api/RSservice/reports/esg_report_20240115_143022
+        "400":
+          description: Missing required fields
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: "Missing required field: company_info"
+        "500":
+          description: Report generation failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+
+  # ============================================================
+  # SYSservice — System & Analytics
+  # ============================================================
+
+  /api/SYSservice/health:
+    get:
+      tags: [SYSservice]
+      operationId: healthCheck
+      summary: Check system health
+      description: |
+        Returns the health status of all system components: knowledge graph,
+        data service, calculation service, and API server.
+      responses:
+        "200":
+          description: System health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                  components:
+                    type: object
+                    properties:
+                      knowledge_graph:
+                        type: string
+                        enum: [healthy, unhealthy]
+                      data_service:
+                        type: string
+                        enum: [healthy, unhealthy]
+                      calculation_service:
+                        type: string
+                        enum: [healthy, unhealthy]
+                      api_server:
+                        type: string
+                        enum: [healthy, unhealthy]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: "1.0.0"
+              example:
+                status: healthy
+                components:
+                  knowledge_graph: healthy
+                  data_service: healthy
+                  calculation_service: healthy
+                  api_server: healthy
+                timestamp: "2024-01-15T14:30:22Z"
+                version: "1.0.0"
+        "500":
+          description: Health check failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: unhealthy
+                  error:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/SYSservice/info:
+    get:
+      tags: [SYSservice]
+      operationId: getSystemInfo
+      summary: Get system information
+      description: Returns system metadata including capabilities, supported industries, and knowledge graph stats.
+      responses:
+        "200":
+          description: System info retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  system_info:
+                    type: object
+
+  /api/SYSservice/openapi:
+    get:
+      tags: [SYSservice]
+      operationId: getOpenApiSpec
+      summary: Get inline OpenAPI specification
+      description: Returns a simplified OpenAPI spec generated by the server.
+      responses:
+        "200":
+          description: OpenAPI spec
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/SYSservice/analytics/performance:
+    get:
+      tags: [SYSservice]
+      operationId: getPerformanceMetrics
+      summary: Get API performance metrics
+      description: Returns request counts, average response time, error rate, and knowledge graph stats.
+      responses:
+        "200":
+          description: Performance metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  performance_metrics:
+                    type: object
+
+  /api/SYSservice/analytics/data-coverage:
+    get:
+      tags: [SYSservice]
+      operationId: getDataCoverageAnalytics
+      summary: Get data coverage analytics
+      description: Returns coverage rates and alignment statistics per industry.
+      responses:
+        "200":
+          description: Coverage analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  coverage_analytics:
+                    type: object
+
+  /api/SYSservice/analytics/api-usage:
+    get:
+      tags: [SYSservice]
+      operationId: getApiUsageAnalytics
+      summary: Get API usage analytics
+      description: Returns endpoint usage counts, response time distribution, and most/least used endpoints.
+      responses:
+        "200":
+          description: Usage analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  usage_analytics:
+                    type: object
+
+  # ============================================================
+  # EVALservice — Evaluation
+  # ============================================================
+
+  /api/EVALservice/comprehensive:
+    get:
+      tags: [EVALservice]
+      operationId: runComprehensiveEvaluation
+      summary: Run comprehensive system evaluation
+      description: Runs full performance evaluation including SPARQL benchmarks, calculation tests, and data coverage analysis.
+      responses:
+        "200":
+          description: Evaluation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  evaluation_type:
+                    type: string
+                    example: performance_evaluation
+                  results:
+                    type: object
+        "500":
+          description: Evaluation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/EVALservice/cq-performance:
+    get:
+      tags: [EVALservice]
+      operationId: getCqPerformance
+      summary: Get competency question performance
+      description: Benchmarks SPARQL execution times for each competency question (CQ1-CQ7), grouped by complexity.
+      responses:
+        "200":
+          description: CQ performance metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  sparql_performance:
+                    type: object
+
+  /api/EVALservice/quick-summary:
+    get:
+      tags: [EVALservice]
+      operationId: getQuickSummary
+      summary: Get quick system summary
+      description: Returns a lightweight system status check with key metrics.
+      responses:
+        "200":
+          description: Quick summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  performance_summary:
+                    type: object
+                  system_status:
+                    type: string
+                    example: operational
+
+  # ============================================================
+  # Additional KGservice endpoints
+  # ============================================================
+
+  /api/KGservice/frameworks:
+    get:
+      tags: [KGservice]
+      operationId: getAllFrameworks
+      summary: List all reporting frameworks
+      description: Returns all SASB frameworks across all supported industries.
+      responses:
+        "200":
+          description: Frameworks listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Framework"
+                  count:
+                    type: integer
+
+  /api/KGservice/sparql:
+    post:
+      tags: [KGservice]
+      operationId: executeSparqlQuery
+      summary: Execute a custom SPARQL query
+      description: Executes an arbitrary SPARQL query against the RDF knowledge graph.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  description: SPARQL query string
+            example:
+              query: "SELECT DISTINCT ?industry WHERE { ?industry a esg:Industry }"
+      responses:
+        "200":
+          description: Query results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  results:
+                    type: array
+                    items:
+                      type: object
+                  result_count:
+                    type: integer
+                  query_time_seconds:
+                    type: number
+        "400":
+          description: Missing query
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Missing SPARQL query
+
+  # ============================================================
+  # Additional CSservice endpoints
+  # ============================================================
+
+  /api/CSservice/memory/summary:
+    get:
+      tags: [CSservice]
+      operationId: getMemorySummary
+      summary: Get calculation memory summary
+      description: Returns summary statistics about cached calculation results.
+      responses:
+        "200":
+          description: Memory summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  memory_summary:
+                    type: object
+                  message:
+                    type: string
+
+  /api/CSservice/memory/company-calculations/{company_name}/{year}:
+    get:
+      tags: [CSservice]
+      operationId: getCompanyCalculations
+      summary: Get all cached calculations for a company
+      description: Returns all previously calculated metrics for a specific company and year.
+      parameters:
+        - name: company_name
+          in: path
+          required: true
+          schema:
+            type: string
+          example: STMicroelectronics NV
+        - name: year
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "2023"
+      responses:
+        "200":
+          description: Company calculations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  company_name:
+                    type: string
+                  year:
+                    type: string
+                  calculations:
+                    type: object
+                  message:
+                    type: string
+
+  # ============================================================
+  # Additional RSservice endpoints
+  # ============================================================
+
+  /api/RSservice/reports:
+    get:
+      tags: [RSservice]
+      operationId: listReports
+      summary: List generated reports
+      description: Returns a list of all generated reports with optional type filtering.
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by report type
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+          description: Maximum number of reports to return
+      responses:
+        "200":
+          description: Reports listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  count:
+                    type: integer
+
+  /api/RSservice/reports/{report_id}:
+    get:
+      tags: [RSservice]
+      operationId: getReport
+      summary: Retrieve a generated report
+      description: Returns a previously generated report by its ID.
+      parameters:
+        - name: report_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: esg_report_20240115_143022
+      responses:
+        "200":
+          description: Report retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  report_id:
+                    type: string
+                  report:
+                    $ref: "#/components/schemas/Report"
+        "404":
+          description: Report not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Report not found
+
+  /api/RSservice/reports/{report_id}/lineage:
+    get:
+      tags: [RSservice]
+      operationId: getReportLineage
+      summary: Get data lineage for a report
+      description: Returns detailed data lineage and provenance information for a generated report.
+      parameters:
+        - name: report_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: esg_report_20240115_143022
+      responses:
+        "200":
+          description: Lineage retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  lineage:
+                    type: object
+
+  /api/RSservice/reports/cross-industry:
+    post:
+      tags: [RSservice]
+      operationId: generateCrossIndustryReport
+      summary: Generate cross-industry comparison report
+      description: Generates a comparison report across multiple industries.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                industries:
+                  type: array
+                  items:
+                    type: string
+            example:
+              industries: [semiconductors, commercial_banks]
+      responses:
+        "200":
+          description: Cross-industry report generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  report_id:
+                    type: string
+                  report:
+                    type: object
+                  comparison_url:
+                    type: string
+
+# ============================================================
+# Reusable Components
+# ============================================================
+
+components:
+  parameters:
+    IndustryPath:
+      name: industry
+      in: path
+      required: true
+      description: |
+        Industry identifier. Supported values: `semiconductors`, `commercial_banks`
+      schema:
+        type: string
+        enum: [semiconductors, commercial_banks]
+      example: semiconductors
+
+  schemas:
+    # ----------------------------------------------------------
+    # Domain Objects
+    # ----------------------------------------------------------
+
+    Industry:
+      type: object
+      description: An industry supported by the OntoMetric system
+      properties:
+        industry_id:
+          type: string
+          description: Machine-readable identifier
+          example: semiconductors
+        industry_name:
+          type: string
+          description: Human-readable name
+          example: Semiconductors
+        reporting_framework:
+          type: string
+          description: SASB framework assigned to this industry
+          example: SASB Semiconductors
+        categories_count:
+          type: integer
+          description: Number of ESG categories in the framework
+          example: 9
+        total_companies_available:
+          type: string
+          description: Placeholder — use DRservice to get actual company list
+          example: "Available in Step 2"
+        description:
+          type: string
+        data_source:
+          type: string
+          example: knowledge_graph_service_cq1_cq2
+
+    Framework:
+      type: object
+      description: A SASB reporting framework
+      properties:
+        id:
+          type: string
+          example: sasb_semiconductors
+        name:
+          type: string
+          example: SASB Semiconductors
+        industry:
+          type: string
+          example: semiconductors
+        categories_count:
+          type: integer
+          example: 9
+        description:
+          type: string
+        cq1_source:
+          type: string
+          description: CQ1 query that produced this result
+        categories_preview:
+          type: array
+          items:
+            type: string
+          description: First 3 categories as a preview
+        service_used:
+          type: string
+        cq_query:
+          type: string
+
+    Category:
+      type: object
+      description: An ESG category within a reporting framework
+      properties:
+        category_id:
+          type: string
+          description: Machine-readable identifier (snake_case)
+          example: greenhouse_gas_emissions
+        category_name:
+          type: string
+          description: Human-readable name
+          example: Greenhouse Gas Emissions
+        metrics_count:
+          type: integer
+          description: Number of metrics in this category
+          example: 3
+        sample_metrics:
+          type: array
+          items:
+            type: string
+          description: First 3 metric names as a preview
+        description:
+          type: string
+        service_used:
+          type: string
+        cq_queries:
+          type: array
+          items:
+            type: string
+
+    Metric:
+      type: object
+      description: An ESG metric with calculation method details
+      properties:
+        metric_id:
+          type: string
+          description: SASB metric code
+          example: TC-SC-110a.1
+        metric_code:
+          type: string
+          example: TC-SC-110a.1
+        metric_name:
+          type: string
+          example: Gross Global Scope 1 Emissions
+        description:
+          type: string
+          example: Gross global Scope 1 emissions
+        unit:
+          type: string
+          example: "Metric tonnes (t) CO\u2082-e"
+        metric_type:
+          type: string
+          description: Quantitative or Discussion/Analysis
+          example: Quantitative
+        has_calculation_model:
+          type: boolean
+          description: Whether this metric requires a calculation model
+        calculation_method:
+          type: string
+          enum: [direct_measurement, calculation_model]
+          description: |
+            `direct_measurement` — value is looked up directly from external datasets.
+            `calculation_model` — value is computed using a Python model with input metrics.
+        model_name:
+          type: string
+          description: Name of the calculation model, or "Direct access" for direct measurements
+          example: GHGEmissionIntensityModel
+        input_datapoints:
+          type: array
+          items:
+            type: string
+          description: Required input metrics for model-based calculations
+        model_formula:
+          type: string
+          description: Mathematical formula or description
+          example: "(scope1_emissions + scope2_emissions) / revenue"
+        data_access_type:
+          type: string
+          enum: [Direct access, Model-based calculation]
+        complexity:
+          type: string
+          enum: [Low, High]
+          description: Low for direct measurements, High for model-based
+
+    Company:
+      type: object
+      description: A company with available ESG data
+      properties:
+        company_name:
+          type: string
+          example: STMicroelectronics NV
+        years_available:
+          type: array
+          items:
+            type: string
+          example: ["2023", "2022", "2021"]
+        year_count:
+          type: integer
+          example: 3
+        latest_year:
+          type: string
+          nullable: true
+          example: "2023"
+        earliest_year:
+          type: string
+          nullable: true
+          example: "2021"
+        data_source:
+          type: string
+          example: enhanced_data_retrieval_service
+
+    # ----------------------------------------------------------
+    # Request Bodies
+    # ----------------------------------------------------------
+
+    CalculationRequest:
+      type: object
+      required: [industry, metrics, company_name]
+      description: Request body for metric calculation
+      properties:
+        industry:
+          type: string
+          enum: [semiconductors, commercial_banks]
+          description: Target industry
+        metrics:
+          type: array
+          items:
+            type: string
+          description: |
+            List of metric names or codes to calculate. Duplicates are removed
+            automatically. Also accepts `selected_metrics` as an alias.
+        company_name:
+          type: string
+          description: Company name. Also accepts nested `company_data.company_name`.
+        year:
+          type: string
+          description: Reporting year. Also accepts nested `company_data.year`. Defaults to "2024".
+          default: "2024"
+
+    BulkAvailabilityRequest:
+      type: object
+      required: [checks]
+      description: Request body for bulk data availability check
+      properties:
+        checks:
+          type: array
+          items:
+            type: object
+            required: [company_name, year]
+            properties:
+              company_name:
+                type: string
+              year:
+                type: string
+              industry:
+                type: string
+
+    ReportRequest:
+      type: object
+      required: [industry, selected_metrics, company_info]
+      description: Request body for ESG report generation
+      properties:
+        industry:
+          type: string
+          enum: [semiconductors, commercial_banks]
+        selected_metrics:
+          type: array
+          items:
+            type: string
+          description: Metric names to include in the report
+        company_info:
+          type: object
+          required: [company_name, year]
+          properties:
+            company_name:
+              type: string
+            year:
+              type: string
+        all_calculated_metrics:
+          type: array
+          items:
+            type: object
+            properties:
+              metric_name:
+                type: string
+              value:
+                type: number
+                nullable: true
+              status:
+                type: string
+          description: |
+            Optional. Pre-calculated metric results from a previous `/api/CSservice/calculate`
+            call. Passing these avoids redundant re-computation during report generation.
+
+    # ----------------------------------------------------------
+    # Response Objects
+    # ----------------------------------------------------------
+
+    CalculationResult:
+      type: object
+      description: Result of a single metric calculation
+      properties:
+        metric_name:
+          type: string
+        metric_code:
+          type: string
+        status:
+          type: string
+          enum: [success, already_calculated, calculation_error, data_unavailable, failed_no_data]
+          description: |
+            - `success`: Metric calculated or retrieved successfully
+            - `already_calculated`: Value returned from cache
+            - `data_unavailable`: No data in external datasets
+            - `calculation_error`: Calculation failed
+        value:
+          type: number
+          nullable: true
+          description: Calculated numeric value, or null if unavailable
+        display_value:
+          type: string
+          description: Formatted value with unit for UI display
+        unit:
+          type: string
+        company_name:
+          type: string
+        year:
+          type: string
+        calculation_method:
+          type: string
+          enum: [direct_measurement, calculation_model]
+        data_source:
+          type: string
+          enum: [external_dataset, calculated_from_real_data]
+          description: |
+            - `external_dataset`: Value looked up directly from CSV data
+            - `calculated_from_real_data`: Value computed by a model using real inputs
+        dataset_variable:
+          type: string
+          description: External dataset column name (for direct measurements)
+        model_name:
+          type: string
+          description: Calculation model used (for model-based calculations)
+        calculation_time:
+          type: number
+          description: Seconds elapsed for this calculation
+
+    CalculationResponse:
+      type: object
+      description: Full response from the calculation endpoint
+      properties:
+        status:
+          type: string
+          example: success
+        calculation_results:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalculationResult"
+        summary:
+          type: object
+          properties:
+            company_name:
+              type: string
+            year:
+              type: string
+            industry:
+              type: string
+            metrics_requested:
+              type: integer
+              description: Total metrics in the original request
+            unique_metrics_processed:
+              type: integer
+              description: Metrics after removing duplicates
+            metrics_already_calculated:
+              type: integer
+              description: Metrics returned from cache
+            metrics_newly_calculated:
+              type: integer
+              description: Metrics freshly computed
+            metrics_with_real_data:
+              type: integer
+              description: Direct measurement metrics with data
+            metrics_calculated_from_real_data:
+              type: integer
+              description: Model-based metrics computed from real inputs
+            metrics_unavailable:
+              type: integer
+              description: Metrics with no available data
+            duplicates_removed:
+              type: integer
+            total_calculation_time:
+              type: string
+              example: "0.234s"
+            data_policy:
+              type: string
+            duplicate_prevention:
+              type: string
+        data_transparency:
+          type: object
+          properties:
+            authenticity_policy:
+              type: string
+            unavailable_data_policy:
+              type: string
+            calculation_engine:
+              type: string
+            cache_policy:
+              type: string
+
+    Report:
+      type: object
+      description: |
+        A comprehensive ESG compliance report. The full report contains detailed
+        sections for company profile, executive summary, metric results, data
+        transparency, and recommendations. Only the top-level structure is shown here.
+      properties:
+        schema_version:
+          type: string
+          example: "2.0"
+        report_metadata:
+          type: object
+          properties:
+            report_id:
+              type: string
+            generation_timestamp:
+              type: string
+              format: date-time
+            report_type:
+              type: string
+              example: ESG Compliance Assessment
+            generated_by:
+              type: string
+              example: ESG Knowledge Graph System
+            data_policy:
+              type: string
+              example: "Real data only - No synthetic or demo data"
+        company_profile:
+          type: object
+          properties:
+            company_name:
+              type: string
+            reporting_year:
+              type: string
+            industry_classification:
+              type: object
+              properties:
+                primary_industry:
+                  type: string
+                reporting_framework:
+                  type: string
+        executive_summary:
+          type: object
+          properties:
+            overall_assessment:
+              type: object
+              properties:
+                total_metrics_analyzed:
+                  type: integer
+                metrics_with_data:
+                  type: integer
+                data_availability_rate:
+                  type: number
+                  description: Percentage of metrics with available data
+                compliance_grade:
+                  type: string
+                  enum: ["A+", "A", "B+", "B", "C", "D"]
+        detailed_results:
+          type: object
+          properties:
+            successful_calculations:
+              type: array
+              items:
+                type: object
+            failed_calculations:
+              type: array
+              items:
+                type: object
+        data_transparency:
+          type: object
+          description: Data lineage, quality assessment, and verification status
+        recommendations:
+          type: object
+          properties:
+            immediate_actions:
+              type: array
+              items:
+                type: string
+            medium_term_goals:
+              type: array
+              items:
+                type: string
+            long_term_strategy:
+              type: array
+              items:
+                type: string
+
+    # ----------------------------------------------------------
+    # Error
+    # ----------------------------------------------------------
+
+    ErrorResponse:
+      type: object
+      description: Standard error response returned by all endpoints on failure
+      properties:
+        status:
+          type: string
+          example: error
+        error_category:
+          type: string
+          description: Machine-readable error type
+          enum:
+            - KNOWLEDGE_GRAPH_ACCESS_ERROR
+            - EXTERNAL_DATA_ACCESS_ERROR
+            - FRAMEWORK_NOT_FOUND
+            - MISSING_INDUSTRY
+          example: KNOWLEDGE_GRAPH_ACCESS_ERROR
+        user_message:
+          type: string
+          description: Human-friendly error message for display
+          example: Error accessing industry data from knowledge graph
+        suggestion:
+          type: string
+          description: Suggested action for the user
+          example: Please check knowledge graph availability and try again
+        technical_message:
+          type: string
+          description: Detailed technical error information for debugging
