@@ -17,7 +17,7 @@ from src.services.knowledge_graph_service import KnowledgeGraphService
 from src.services.calculation_service import CalculationService
 from src.services.report_service import ReportService
 from src.services.data_retrieval_service import DataRetrievalService
-from src.evaluation.performance_evaluator import PerformanceEvaluator
+from src.evaluation.performance_evaluator import create_comprehensive_performance_diagram
 
 class ESGKnowledgeGraphAPI:
     """Comprehensive REST API for Ontometric System"""
@@ -38,7 +38,7 @@ class ESGKnowledgeGraphAPI:
         # Wire up services - connect knowledge graph to calculation service
         self.calc_service.kg_service = self.kg_service
         self.report_service = ReportService()  # New consolidated report service
-        self.evaluation_service = PerformanceEvaluator(self.data_service, self.kg_service, self.calc_service)
+        self.create_performance_diagram = create_comprehensive_performance_diagram
         
         # Track API usage for performance metrics
         self.api_metrics = {
@@ -83,6 +83,19 @@ class ESGKnowledgeGraphAPI:
         self.app.route('/api/RSservice/reports/generate-pdf', methods=['POST'])(self.generate_pdf_report)
         self.app.route('/api/RSservice/reports/download/<filename>', methods=['GET'])(self.download_report)
         
+        # ==================== SYSservice — System & Analytics ====================
+        self.app.route('/api/SYSservice/health', methods=['GET'])(self.health_check)
+        self.app.route('/api/SYSservice/info', methods=['GET'])(self.get_system_info)
+        self.app.route('/api/SYSservice/openapi', methods=['GET'])(self.get_openapi_spec)
+        self.app.route('/api/SYSservice/analytics/performance', methods=['GET'])(self.get_performance_metrics)
+        self.app.route('/api/SYSservice/analytics/data-coverage', methods=['GET'])(self.get_data_coverage_analytics)
+        self.app.route('/api/SYSservice/analytics/api-usage', methods=['GET'])(self.get_api_usage_analytics)
+
+        # ==================== EVALservice — Evaluation ====================
+        self.app.route('/api/EVALservice/comprehensive', methods=['GET'])(self.run_comprehensive_evaluation)
+        self.app.route('/api/EVALservice/cq-performance', methods=['GET'])(self.get_cq_performance)
+        self.app.route('/api/EVALservice/quick-summary', methods=['GET'])(self.get_quick_summary)
+
         # ==================== LEGACY v1 ENDPOINTS (for backward compatibility) ====================
         # Industry and framework endpoints
         self.app.route('/api/v1/industries', methods=['GET'])(self.get_available_industries)
@@ -1928,18 +1941,14 @@ class ESGKnowledgeGraphAPI:
     # ==================== COMPREHENSIVE EVALUATION APIs ====================
     
     def run_comprehensive_evaluation(self):
-        """Run comprehensive system evaluation with all metrics"""
+        """Run comprehensive system evaluation — generates performance diagram"""
         try:
-            evaluation_results = self.evaluation_service.run_performance_evaluation()
-            
+            self.create_performance_diagram()
             return jsonify({
                 "status": "success",
-                "evaluation_type": "performance_evaluation",
-                "results": evaluation_results,
-                "metadata": {
-                    "execution_time": evaluation_results.get("evaluation_metadata", {}).get("total_evaluation_time_seconds"),
-                    "timestamp": evaluation_results.get("evaluation_metadata", {}).get("timestamp")
-                }
+                "evaluation_type": "performance_diagram",
+                "message": "Comprehensive performance diagram generated",
+                "output": "src/evaluation/comprehensive_performance_analysis.png"
             })
         except Exception as e:
             return jsonify({
@@ -1947,36 +1956,38 @@ class ESGKnowledgeGraphAPI:
                 "message": f"Performance evaluation failed: {str(e)}",
                 "error_type": "evaluation_error"
             }), 500
-    
+
     def get_cq_performance(self):
-        """Get SPARQL query performance metrics"""
+        """Get competency question performance summary"""
         try:
-            # Run SPARQL performance evaluation
-            sparql_results = self.evaluation_service._evaluate_sparql_performance()
-            
+            from src.evaluation.performance_evaluator import load_evaluation_data
+            data = load_evaluation_data()
+            service_perf = data["performance_results"]["service_performance"]
+            tat_perf = data["performance_results"]["tat_performance"]
             return jsonify({
                 "status": "success",
-                "sparql_performance": sparql_results,
-                "summary": {
-                    "complexity_levels": len(sparql_results),
-                    "total_queries_tested": sum(len(level.get("execution_times", {})) for level in sparql_results.values()),
-                    "average_performance": "See detailed breakdown by complexity"
-                }
+                "service_performance": service_perf,
+                "tat_performance": tat_perf
             })
         except Exception as e:
             return jsonify({
                 "status": "error",
-                "message": f"SPARQL performance analysis failed: {str(e)}"
+                "message": f"Performance data retrieval failed: {str(e)}"
             }), 500
-    
+
     def get_quick_summary(self):
         """Get quick system performance summary"""
         try:
-            summary = self.evaluation_service.generate_performance_summary()
-            
+            from src.evaluation.performance_evaluator import load_evaluation_data
+            data = load_evaluation_data()
+            tat = data["performance_results"]["tat_performance"]
             return jsonify({
                 "status": "success",
-                "performance_summary": summary,
+                "performance_summary": {
+                    "transparency_score": tat["transparency"]["overall_transparency_score"],
+                    "adaptability_score": tat["adaptability"]["overall_adaptability_score"],
+                    "traceability_score": tat["traceability"]["overall_traceability_score"]
+                },
                 "system_status": "operational"
             })
         except Exception as e:
