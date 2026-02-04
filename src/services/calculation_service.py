@@ -147,41 +147,46 @@ class CalculationService:
                     start_time
                 )
             
+            model_equation = cq5_result.get("model_equation", cq5_result.get("formula", ""))
             print(f"✅ CQ5 result: Required inputs = {required_inputs}")
-            
+
             # Step 3: For each input metric, get its value using CQ4→CQ7
             print(f"📊 Step 3: Getting values for all input metrics")
             input_values = {}
-            
+            input_dataset_variables = {}  # Track dataset variables for each input metric
+
             for input_metric in required_inputs:
                 print(f"  📊 Getting value for input: {input_metric}")
-                
+
                 # Sub-step 3a: CQ4 for input metric
                 try:
                     input_cq4 = self.kg_service.cq4_metric_calculation_method(industry, input_metric)
                     input_method = input_cq4.get("measurement_method")
-                    
+
                     if input_method != "direct_measurement":
                         print(f"  ❌ Input {input_metric} is not direct measurement, skipping")
                         continue
-                        
+
                 except Exception as e:
                     print(f"  ❌ CQ4 failed for input {input_metric}: {str(e)}")
                     continue
-                
-                # Sub-step 3b: CQ7 for input metric  
+
+                # Sub-step 3b: CQ7 for input metric
                 try:
                     input_cq7 = self.kg_service.cq7_datapoint_original_source(industry, input_metric)
                     dataset_variable = input_cq7.get("original_datasource", {}).get("dataset_variable")
-                    
+
                     if not dataset_variable:
                         print(f"  ❌ CQ7 failed for input {input_metric}: no dataset variable")
                         continue
-                        
+
                 except Exception as e:
                     print(f"  ❌ CQ7 failed for input {input_metric}: {str(e)}")
                     continue
-                
+
+                # Track the dataset variable for this input metric
+                input_dataset_variables[input_metric] = dataset_variable
+
                 # Sub-step 3c: Get value from dataset
                 try:
                     value = self.external_data_service.get_metric_value(company_name, year, dataset_variable)
@@ -192,7 +197,7 @@ class CalculationService:
                         print(f"  ✅ {input_metric} = {value} (mapped to {input_key})")
                     else:
                         print(f"  ❌ No value found for {input_metric} in {dataset_variable}")
-                        
+
                 except Exception as e:
                     print(f"  ❌ Data retrieval failed for {input_metric}: {str(e)}")
                     continue
@@ -240,7 +245,9 @@ class CalculationService:
                     "sasb_code": cq4_result.get("metric_code", "n/a"),
                     "calculation_method": "calculation_model",
                     "model_name": model_name,
+                    "model_equation": model_equation,
                     "input_values": input_values,
+                    "input_dataset_variables": input_dataset_variables,
                     "implementation": {"file_path": file_path, "function_name": function_name},
                     "status": "success",
                     "calculation_time": time.time() - start_time
