@@ -87,4 +87,9 @@ Desktop.ini
 # Temporary files
 *.tmp
 *.temp
-*.log 
+*.log
+
+# Project-specific
+/tmp/
+*.output
+.claude/ 

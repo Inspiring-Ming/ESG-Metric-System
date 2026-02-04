@@ -13,9 +13,9 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(current_dir))
 sys.path.append(project_root)
 
-from src.services.unified_knowledge_graph_service import UnifiedKnowledgeGraphService
+from src.services.knowledge_graph_service import KnowledgeGraphService
 from src.services.calculation_service import CalculationService
-from src.services.comprehensive_report_service import ComprehensiveReportService
+from src.services.report_service import ReportService
 from src.services.data_retrieval_service import DataRetrievalService
 from src.evaluation.performance_evaluator import PerformanceEvaluator
 
@@ -33,11 +33,11 @@ class ESGKnowledgeGraphAPI:
         
         # Initialize services
         self.data_service = DataRetrievalService()
-        self.kg_service = UnifiedKnowledgeGraphService(self.data_service)
+        self.kg_service = KnowledgeGraphService(self.data_service)
         self.calc_service = CalculationService(self.data_service)  # Pass data service for external data access
         # Wire up services - connect knowledge graph to calculation service
         self.calc_service.kg_service = self.kg_service
-        self.report_service = ComprehensiveReportService(self.data_service, self.kg_service, self.calc_service)
+        self.report_service = ReportService()  # New consolidated report service
         self.evaluation_service = PerformanceEvaluator(self.data_service, self.kg_service, self.calc_service)
         
         # Track API usage for performance metrics
@@ -56,6 +56,34 @@ class ESGKnowledgeGraphAPI:
         # Health check
         self.app.route('/api/v1/system/health', methods=['GET'])(self.health_check)
         
+        # ==================== SERVICE-BASED CORE ENDPOINTS ====================
+        # Knowledge Graph Service endpoints (KGservice)
+        self.app.route('/api/KGservice/industries', methods=['GET'])(self.get_available_industries)
+        self.app.route('/api/KGservice/industries/<industry>/frameworks', methods=['GET'])(self.get_reporting_frameworks_by_industry)
+        self.app.route('/api/KGservice/frameworks/<framework>/categories', methods=['GET'])(self.get_categories_by_framework)
+        self.app.route('/api/KGservice/categories/<category>/metrics', methods=['GET'])(self.get_detailed_metrics_by_category)
+        
+        # Data Retrieval Service endpoints (DRservice)
+        self.app.route('/api/DRservice/industries/<industry>/companies', methods=['GET'])(self.get_companies_by_industry)
+        self.app.route('/api/DRservice/companies/<company_name>/years', methods=['GET'])(self.get_company_years_api)
+        self.app.route('/api/DRservice/companies/<company_name>/industry', methods=['GET'])(self.get_company_industry_api)
+        self.app.route('/api/DRservice/companies/all', methods=['GET'])(self.get_all_companies_api)
+        self.app.route('/api/DRservice/data-availability/<company_name>/<year>', methods=['GET'])(self.check_data_availability)
+        self.app.route('/api/DRservice/data-availability/bulk', methods=['POST'])(self.check_multiple_data_availability)
+
+        # Calculation Service endpoints (CSservice)
+        self.app.route('/api/CSservice/calculate', methods=['POST'])(self.calculate_metrics)
+
+        # Knowledge Graph Service endpoints for models
+        self.app.route('/api/KGservice/metrics/<metric_name>/models', methods=['GET'])(self.get_metric_models)
+        
+        # Report Service endpoints (RSservice)
+        self.app.route('/api/RSservice/reports/generate', methods=['POST'])(self.generate_report)
+        self.app.route('/api/RSservice/reports/generate-word', methods=['POST'])(self.generate_word_report)
+        self.app.route('/api/RSservice/reports/generate-pdf', methods=['POST'])(self.generate_pdf_report)
+        self.app.route('/api/RSservice/reports/download/<filename>', methods=['GET'])(self.download_report)
+        
+        # ==================== LEGACY v1 ENDPOINTS (for backward compatibility) ====================
         # Industry and framework endpoints
         self.app.route('/api/v1/industries', methods=['GET'])(self.get_available_industries)
         self.app.route('/api/v1/industries/<industry>/companies', methods=['GET'])(self.get_companies_by_industry)
@@ -261,6 +289,184 @@ class ESGKnowledgeGraphAPI:
                 "user_message": "Error accessing company data",
                 "suggestion": "Please try again or contact support",
                 "technical_message": str(e)
+            }), 500
+
+    def get_company_years_api(self, company_name):
+        """Get available years for a specific company using Data Retrieval Service"""
+        try:
+            print(f"📊 Getting available years for company: {company_name}")
+            
+            # Use Data Retrieval Service to get available years
+            years = self.data_service.get_available_years(company_name)
+            
+            # Handle error responses from enhanced service
+            if isinstance(years, dict) and years.get("error"):
+                return jsonify({
+                    "status": "error",
+                    "error_category": years.get("error_category"),
+                    "user_message": years.get("user_message"),
+                    "suggestion": years.get("suggestion"),
+                    "technical_message": years.get("technical_message")
+                }), 400
+            
+            # Sort years in descending order (most recent first)
+            sorted_years = sorted(years, reverse=True) if years else []
+            
+            print(f"📊 Found {len(sorted_years)} years for {company_name}: {sorted_years}")
+            return jsonify({
+                "status": "success",
+                "company_name": company_name,
+                "years": sorted_years,
+                "count": len(sorted_years),
+                "latest_year": sorted_years[0] if sorted_years else None,
+                "earliest_year": sorted_years[-1] if sorted_years else None,
+                "service_used": "data_retrieval_service",
+                "message": f"Available years for {company_name}"
+            })
+        except Exception as e:
+            print(f"❌ Error getting years for {company_name}: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "error_category": "EXTERNAL_DATA_ACCESS_ERROR",
+                "user_message": "Error accessing year data for company",
+                "suggestion": "Please try again or select a different company",
+                "technical_message": str(e)
+            }), 500
+
+    def get_company_industry_api(self, company_name):
+        """Get the industry for a specific company"""
+        try:
+            print(f"📊 Getting industry for company: {company_name}")
+
+            # Use Data Retrieval Service to find company's industry
+            industry = self.data_service.get_company_industry(company_name)
+
+            if industry is None:
+                return jsonify({
+                    "status": "error",
+                    "error_category": "COMPANY_NOT_FOUND",
+                    "user_message": f"Company '{company_name}' not found in any industry",
+                    "suggestion": "Please check the company name or select from the available companies list",
+                    "technical_message": "Company not found in industry datasets"
+                }), 404
+
+            print(f"📊 Found industry: {industry} for {company_name}")
+            return jsonify({
+                "status": "success",
+                "company_name": company_name,
+                "industry": industry,
+                "industry_display": industry.replace('_', ' ').title(),
+                "service_used": "data_retrieval_service",
+                "message": f"Industry found for {company_name}"
+            })
+        except Exception as e:
+            print(f"❌ Error getting industry for {company_name}: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "error_category": "EXTERNAL_DATA_ACCESS_ERROR",
+                "user_message": "Error finding company industry",
+                "suggestion": "Please try again or select a different company",
+                "technical_message": str(e)
+            }), 500
+
+    def get_all_companies_api(self):
+        """Get all companies organized by industry"""
+        try:
+            print(f"📊 Getting all companies from all industries")
+
+            # Use Data Retrieval Service to get all companies
+            companies_by_industry = self.data_service.get_all_companies()
+
+            total_companies = sum(len(companies) for companies in companies_by_industry.values())
+
+            print(f"📊 Found {total_companies} companies across {len(companies_by_industry)} industries")
+            return jsonify({
+                "status": "success",
+                "companies_by_industry": companies_by_industry,
+                "total_companies": total_companies,
+                "industries": list(companies_by_industry.keys()),
+                "service_used": "data_retrieval_service",
+                "message": f"Retrieved {total_companies} companies from all industries"
+            })
+        except Exception as e:
+            print(f"❌ Error getting all companies: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "error_category": "EXTERNAL_DATA_ACCESS_ERROR",
+                "user_message": "Error retrieving companies list",
+                "suggestion": "Please try again",
+                "technical_message": str(e)
+            }), 500
+
+    def get_metric_models(self, metric_name):
+        """Get available models for a specific metric"""
+        try:
+            industry = request.args.get('industry', 'semiconductors')
+            print(f"📊 Getting models for metric: {metric_name} in industry: {industry}")
+
+            # Use CQ4 to get metric calculation method and model info
+            cq4_result = self.kg_service.cq4_metric_calculation_method(industry, metric_name)
+
+            measurement_method = cq4_result.get("measurement_method", "unknown")
+
+            if measurement_method == "direct_measurement":
+                # For direct measurements, get the dataset variable using CQ7
+                try:
+                    cq7_result = self.kg_service.cq7_get_dataset_variable(industry, metric_name)
+                    dataset_variable = cq7_result.get("dataset_variable", "N/A")
+                except:
+                    dataset_variable = "N/A"
+
+                return jsonify({
+                    "status": "success",
+                    "metric_name": metric_name,
+                    "measurement_method": "direct_measurement",
+                    "dataset_variable": dataset_variable,
+                    "models": [],
+                    "message": "Direct measurement - no models required"
+                })
+
+            elif measurement_method == "calculation_model":
+                # For calculated metrics, get model details
+                model_name = cq4_result.get("model_name", "Unknown Model")
+
+                # Get model equation/formula using CQ5
+                try:
+                    cq5_result = self.kg_service.cq5_model_input_datapoints(industry, model_name, self.calc_service)
+                    model_equation = cq5_result.get("model_equation", cq5_result.get("formula", "N/A"))
+                    input_metrics = cq5_result.get("required_inputs", [])
+                except:
+                    model_equation = cq4_result.get("model_description", "N/A")
+                    input_metrics = []
+
+                models = [{
+                    "model_name": model_name,
+                    "model_equation": model_equation,
+                    "model_description": cq4_result.get("model_description", ""),
+                    "input_metrics": input_metrics
+                }]
+
+                return jsonify({
+                    "status": "success",
+                    "metric_name": metric_name,
+                    "measurement_method": "calculation_model",
+                    "models": models,
+                    "message": f"Found {len(models)} model(s) for {metric_name}"
+                })
+
+            else:
+                return jsonify({
+                    "status": "error",
+                    "message": f"Unknown measurement method: {measurement_method}"
+                }), 400
+
+        except Exception as e:
+            print(f"❌ Error getting models for {metric_name}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                "status": "error",
+                "message": str(e)
             }), 500
 
     def get_reporting_frameworks_by_industry(self, industry):
@@ -1148,7 +1354,173 @@ class ESGKnowledgeGraphAPI:
             
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500
-    
+
+    def generate_word_report(self):
+        """Generate ESG report in Word format"""
+        try:
+            from flask import send_file
+            data = request.get_json()
+
+            # Extract report data
+            calculations = data.get("calculations", [])
+            company_name = data.get("company_name", "Unknown Company")
+            year = data.get("year", "N/A")
+            industry = data.get("industry", "N/A")
+
+            if not calculations:
+                return jsonify({
+                    "status": "error",
+                    "message": "No calculations provided for report generation"
+                }), 400
+
+            # Filter to only include successfully calculated metrics (both direct and calculated)
+            successful_calculations = [
+                calc for calc in calculations
+                if calc.get('status') == 'success'
+            ]
+
+            print(f"📄 Generating Word report: {len(successful_calculations)} metrics")
+            print(f"   Categories found: {set([c.get('category', 'N/A') for c in successful_calculations])}")
+            print(f"   Sample metric: {successful_calculations[0] if successful_calculations else 'None'}")
+
+            # Prepare data for Word report
+            report_data = {
+                "company_name": company_name,
+                "year": year,
+                "industry": industry,
+                "framework": f"SASB {industry.replace('_', ' ').title()}",
+                "calculations": successful_calculations,
+                "quality_score": data.get("quality_score", 85)
+            }
+
+            # Generate Word document using new ReportService
+            result = self.report_service.generate_word_report(report_data)
+
+            # Check if generation was successful
+            if result.get("status") != "success":
+                return jsonify({
+                    "status": "error",
+                    "message": result.get("message", "Failed to generate Word report")
+                }), 500
+
+            return jsonify({
+                "status": "success",
+                "message": "Word report generated successfully",
+                "filename": result.get("filename"),
+                "download_url": result.get("download_url"),
+                "metrics_count": len(successful_calculations)
+            })
+
+        except Exception as e:
+            print(f"❌ Error generating Word report: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                "status": "error",
+                "message": str(e)
+            }), 500
+
+    def generate_pdf_report(self):
+        """Generate ESG report in PDF format"""
+        try:
+            from flask import send_file
+            data = request.get_json()
+
+            # Extract report data
+            calculations = data.get("calculations", [])
+            company_name = data.get("company_name", "Unknown Company")
+            year = data.get("year", "N/A")
+            industry = data.get("industry", "N/A")
+
+            if not calculations:
+                return jsonify({
+                    "status": "error",
+                    "message": "No calculations provided for report generation"
+                }), 400
+
+            # Filter to only include successfully calculated metrics (both direct and calculated)
+            successful_calculations = [
+                calc for calc in calculations
+                if calc.get('status') == 'success'
+            ]
+
+            print(f"📄 Generating PDF report: {len(successful_calculations)} metrics")
+            print(f"   Categories found: {set([c.get('category', 'N/A') for c in successful_calculations])}")
+            print(f"   Sample metric: {successful_calculations[0] if successful_calculations else 'None'}")
+
+            # Prepare data for PDF report
+            report_data = {
+                "company_name": company_name,
+                "year": year,
+                "industry": industry,
+                "framework": f"SASB {industry.replace('_', ' ').title()}",
+                "calculations": successful_calculations,
+                "quality_score": data.get("quality_score", 85)
+            }
+
+            # Generate PDF document using new ReportService
+            result = self.report_service.generate_pdf_report(report_data)
+
+            # Check if generation was successful
+            if result.get("status") != "success":
+                return jsonify({
+                    "status": "error",
+                    "message": result.get("message", "Failed to generate PDF report")
+                }), 500
+
+            return jsonify({
+                "status": "success",
+                "message": "PDF report generated successfully",
+                "filename": result.get("filename"),
+                "download_url": result.get("download_url"),
+                "metrics_count": len(successful_calculations)
+            })
+
+        except Exception as e:
+            print(f"❌ Error generating PDF report: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                "status": "error",
+                "message": str(e)
+            }), 500
+
+    def download_report(self, filename):
+        """Download a generated report file"""
+        try:
+            from flask import send_file
+
+            # Use ReportService to get the file path
+            filepath = self.report_service.get_report_file(filename)
+
+            if not filepath:
+                return jsonify({
+                    "status": "error",
+                    "message": "Report file not found"
+                }), 404
+
+            # Determine MIME type based on file extension
+            if filename.endswith('.pdf'):
+                mimetype = 'application/pdf'
+            elif filename.endswith('.docx'):
+                mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            else:
+                mimetype = 'application/octet-stream'
+
+            return send_file(
+                filepath,
+                as_attachment=True,
+                download_name=filename,
+                mimetype=mimetype
+            )
+
+        except Exception as e:
+            print(f"❌ Error downloading report: {str(e)}")
+            return jsonify({
+                "status": "error",
+                "message": str(e)
+            }), 500
+
     def get_report(self, report_id):
         """Retrieve a generated report using Report Service"""
         try:
@@ -1760,7 +2132,7 @@ class ESGKnowledgeGraphAPI:
                 ]
             
             # Check data availability for all metrics
-            availability_result = self.external_data_service.check_data_availability(
+            availability_result = self.data_service.check_data_availability(
                 company_name, year, all_metrics
             )
             
@@ -1819,7 +2191,7 @@ class ESGKnowledgeGraphAPI:
                     all_metrics = ["Gross Global Scope 1 Emissions", "Total Energy Consumed"]
                 
                 # Check availability
-                availability = self.external_data_service.check_data_availability(
+                availability = self.data_service.check_data_availability(
                     company_name, year, all_metrics
                 )
                 

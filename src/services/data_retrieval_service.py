@@ -18,46 +18,36 @@ class DataRetrievalService:
     
     def __init__(self, data_dir: str = "data/raw"):
         """Initialize data retrieval service with external dataset access"""
-        self.data_dir = Path(data_dir)
+        # Get project root directory (2 levels up from this file)
+        current_file = Path(__file__).resolve()
+        project_root = current_file.parent.parent.parent
+
+        # Use absolute paths from project root
+        self.data_dir = project_root / data_dir if not Path(data_dir).is_absolute() else Path(data_dir)
         self.csv_sample = None
         self._validate_data_directory()
-        
-        # External dataset configuration
-        self.external_dataset_path = Path("data/External dataset/Raw data with industry.csv")
+
+        # External dataset configuration - LAZY LOADING for performance
+        self.external_dataset_path = project_root / "data/External dataset/Raw data with industry.csv"
         self.external_df = None
-        self._load_external_dataset()
+        self.industry_datasets = {}
+        self._datasets_loaded = False
         
-        # Enhanced error categories for better user experience
-        self.error_categories = {
-            "COMPANY_NOT_FOUND": {
-                "user_message": "Company not found in dataset",
-                "suggestion": "Please check company name spelling or try a different company"
+        # Initialize demo companies for fallback
+        self.demo_companies = {
+            "semiconductors": {
+                "STMicroelectronics NV": "Advanced semiconductor manufacturer with comprehensive ESG data",
+                "ON Semiconductor Corp": "Global semiconductor solutions provider"
             },
-            "INDUSTRY_MISMATCH": {
-                "user_message": "Company industry doesn't match selected industry",
-                "suggestion": "Please select the correct industry for this company"
-            },
-            "YEAR_NOT_AVAILABLE": {
-                "user_message": "Data not available for selected year",
-                "suggestion": "Please try a different year or check available years for this company"
-            },
-            "DATASET_VARIABLE_MAPPING_FAILED": {
-                "user_message": "Cannot map SASB metric to dataset variable",
-                "suggestion": "This metric may not be available in the external dataset"
-            },
-            "EXTERNAL_DATA_ACCESS_ERROR": {
-                "user_message": "Error accessing external dataset",
-                "suggestion": "Please check dataset availability and try again"
-            },
-            "FUZZY_MATCH_MULTIPLE_COMPANIES": {
-                "user_message": "Multiple companies found with similar names",
-                "suggestion": "Please be more specific with the company name"
-            },
-            "NO_REAL_DATA_AVAILABLE": {
-                "user_message": "No real data available for the requested industry",
-                "suggestion": "Check available industries or verify dataset loading"
+            "commercial_banks": {
+                "Banco Santander SA": "Major European commercial bank with extensive ESG metrics", 
+                "Taishin Financial Holding Co Ltd": "Taiwan-based financial services company"
             }
         }
+        
+        print("⚡ DataRetrievalService initialized with lazy loading (datasets load on first access)")
+        
+        # Enhanced error categories are provided by the error_categories property method
         
     def _validate_data_directory(self):
         """Ensure required data files exist"""
@@ -259,7 +249,8 @@ class DataRetrievalService:
             "High Stress Water Consumption Rate Model": {"high_stress_consumption": 20, "total_water_consumed": 80},
             "Hazardous Waste Recycling Rate Model": {"recycled_waste": 45, "total_hazardous_waste": 60},
             "Personal Data Breach Rate": {"personal_breaches": 3, "total_breaches": 5},
-            "Financed Emissions Coverage Rate": {"covered_exposure": 850000, "total_exposure": 1000000}
+            "Financed Emissions Coverage Rate": {"covered_exposure": 850000, "total_exposure": 1000000},
+            "Financed Emissions Coverage Percentage": {"covered_exposure": 850000, "total_exposure": 1000000}
         }
         
         # Try to get company-specific data if available
@@ -290,7 +281,8 @@ class DataRetrievalService:
             "High Stress Water Consumption Rate Model": ["water", "consumption", "usage"],
             "Hazardous Waste Recycling Rate Model": ["waste", "recycling", "hazardous"],
             "Personal Data Breach Rate": ["data", "breach", "security", "privacy"],
-            "Financed Emissions Coverage Rate": ["emissions", "finance", "carbon", "scope"]
+            "Financed Emissions Coverage Rate": ["emissions", "finance", "carbon", "scope"],
+            "Financed Emissions Coverage Percentage": ["emissions", "finance", "carbon", "scope"]
         }
         
         return keyword_mappings.get(model_name, ["metric", "value"])
@@ -327,6 +319,24 @@ class DataRetrievalService:
 
     # ==================== EXTERNAL DATASET ACCESS ====================
     # Integrated External Data Service functionality for real ESG dataset access
+    
+    def _ensure_datasets_loaded(self):
+        """Ensure datasets are loaded (lazy loading for performance)"""
+        if self._datasets_loaded:
+            return
+        
+        print("⚡ Loading datasets on first access...")
+        self._load_external_dataset()
+        self._datasets_loaded = True
+    
+    def _ensure_datasets_loaded(self):
+        """Ensure datasets are loaded (lazy loading for performance)"""
+        if self._datasets_loaded:
+            return
+        
+        print("⚡ Loading datasets on first access...")
+        self._load_external_dataset()
+        self._datasets_loaded = True
     
     def _load_external_dataset(self):
         """Load the external ESG dataset and initialize configurations"""
@@ -374,8 +384,8 @@ class DataRetrievalService:
         # Load industry-specific datasets
         self.industry_datasets = {}
         industry_files = {
-            "semiconductors": "data/External dataset/Semiconductors.csv",
-            "commercial_banks": "data/External dataset/Commercial_Banks.csv"
+            "semiconductors": "data/External dataset/Semiconductors_Eurofidai_EnvironmentData.csv",
+            "commercial_banks": "data/External dataset/Commercial_Banks_Eurofidai_EnvironmentData.csv"
         }
         
         try:
@@ -387,7 +397,8 @@ class DataRetrievalService:
                     print(f"📊 Loading {industry} dataset from {file_path}")
                     
                     try:
-                        # Simplified loading without dtype optimization to avoid parsing errors
+                        # Load full dataset to ensure all companies are available
+                        print(f"📊 Loading full dataset...")
                         self.industry_datasets[industry] = pd.read_csv(
                             file_path,
                             low_memory=False
@@ -420,6 +431,7 @@ class DataRetrievalService:
     
     def get_companies_by_industry(self, industry: str) -> List[str]:
         """Get the 20 companies with most records for specific industry using industry-specific datasets"""
+        self._ensure_datasets_loaded()  # Lazy loading
         print(f"📊 Looking for companies in industry: {industry}")
         
         # First try to use industry-specific dataset
@@ -566,7 +578,10 @@ class DataRetrievalService:
     def get_metric_value(self, company_name: str, year: str, metric_name: str) -> Optional[float]:
         """Get metric value for a specific company and year from external dataset"""
         print(f"📊 Getting metric value: {metric_name} for {company_name} ({year})")
-        
+
+        # Ensure datasets are loaded (lazy loading)
+        self._ensure_datasets_loaded()
+
         try:
             # Check if metric_name is already a dataset variable (uppercase, specific patterns)
             # If it looks like a dataset variable, use it directly
@@ -752,16 +767,22 @@ class DataRetrievalService:
             "renewable_energy": "RENEWENERGYPURCHASED",
             "gross_global_scope_1_emissions": "CO2DIRECTSCOPE1",
             "scope_1_emissions": "CO2DIRECTSCOPE1",
+            "scope1_emission": "CO2DIRECTSCOPE1",  # Added for GHG calculation
             "scope_1_emissions_strategy": "TARGETS_EMISSIONS",  # Yes/No metric
             "scope_2_emissions": "CO2INDIRECTSCOPE2", 
+            "scope2_emission": "CO2INDIRECTSCOPE2",  # Added for GHG calculation
             "scope_3_emissions": "CO2INDIRECTSCOPE3",
+            "revenue": "revt",  # Added for GHG calculation - maps to financial dataset
             "total_water_withdrawn": "WATERWITHDRAWALTOTAL",
             "water_withdrawn": "WATERWITHDRAWALTOTAL",
             "total_waste_generated": "WASTETOTAL",
             "waste_generated": "WASTETOTAL",
             "hazardous_waste": "HAZARDOUSWASTE",
             "employee_fatalities": "EMPLOYEEFATALITIES",
-            "safety_incidents": "TIRTOTAL"
+            "safety_incidents": "TIRTOTAL",
+            # GHG Emission Intensity related metrics
+            "ghg_emission_intensity": "calculated",  # This is a calculated metric
+            "ghgemissionintensity": "calculated"  # Alternative naming
         }
         
         # Check direct mappings first
@@ -828,258 +849,215 @@ class DataRetrievalService:
     
     def get_available_companies(self, industry: str = None) -> Dict[str, Any]:
         """Get available companies for selection, optionally filtered by industry - REAL DATA ONLY"""
+        self._ensure_datasets_loaded()  # Lazy loading
         if self.external_df is None or len(self.external_df) == 0:
             return {"error": "External dataset not loaded", "available_companies": {}, "total_companies": 0}
         
         try:
-            if industry:
-                # Map industry names
-                industry_filter = self._map_industry_name(industry)
-                df_filtered = self.external_df[self.external_df['industry'].str.contains(industry_filter, case=False, na=False)]
-            else:
-                df_filtered = self.external_df
+            companies_by_industry = {}
+            all_companies = set()
             
-            # Get companies with good data coverage
-            company_stats = df_filtered.groupby('company_name').agg({
-                'metric_name': 'nunique',
-                'metric_year': lambda x: len(x.unique()),
-                'metric_value': 'count'
-            }).reset_index()
+            if hasattr(self, 'industry_datasets'):
+                # Use industry-specific datasets
+                for industry_name, dataset in self.industry_datasets.items():
+                    if not dataset.empty and 'company_name' in dataset.columns:
+                        industry_companies = dataset['company_name'].unique().tolist()
+                        companies_by_industry[industry_name] = {
+                            "companies": industry_companies[:20],  # Limit to 20 for performance
+                            "total_count": len(industry_companies),
+                            "dataset_size": len(dataset)
+                        }
+                        all_companies.update(industry_companies)
             
-            # Filter for companies with substantial data
-            good_companies = company_stats[
-                (company_stats['metric_name'] >= 10) & 
-                (company_stats['metric_year'] >= 2) &
-                (company_stats['metric_value'] >= 20)
-            ].sort_values('metric_name', ascending=False)
-            
-            available_companies = {}
-            for _, row in good_companies.head(20).iterrows():  # Top 20 companies
-                company_name = row['company_name']
-                available_companies[company_name] = {
-                    "unique_metrics": int(row['metric_name']),
-                    "years_available": int(row['metric_year']),
-                    "total_records": int(row['metric_value'])
-                }
+            # Filter by specific industry if requested
+            if industry and industry in companies_by_industry:
+                return companies_by_industry[industry]
+            elif industry:
+                return {"error": f"Industry {industry} not found", "available_companies": [], "total_companies": 0}
             
             return {
-                "available_companies": available_companies,
-                "total_companies": len(available_companies),
-                "industry_filter": industry
+                "companies_by_industry": companies_by_industry,
+                "all_companies": list(all_companies)[:50],  # Limit for API response
+                "total_companies": len(all_companies),
+                "industries_available": list(companies_by_industry.keys()),
+                "data_policy": "Real company data only - no synthetic entries"
             }
             
         except Exception as e:
-            print(f"⚠️ Error getting available companies: {str(e)}")
-            return {"error": f"Error loading companies: {str(e)}", "available_companies": {}, "total_companies": 0}
+            return self._create_error_response(
+                "EXTERNAL_DATASET_ACCESS_FAILED",
+                f"Error accessing company data: {str(e)}",
+                {"industry_filter": industry}
+            )
 
-    def get_company_industry(self, company_name: str) -> Dict[str, Any]:
-        """Get company's industry from external dataset - REAL DATA ONLY"""
-        if self.external_df is None or len(self.external_df) == 0:
-            return {
-                "company_name": company_name,
-                "error": "External dataset not loaded",
-                "data_source": "no_data_available"
-            }
-        
+    def check_data_availability(self, company_name: str, year: str, metrics: List[str]) -> Dict[str, Any]:
+        """Check data availability for specific company, year, and metrics"""
         try:
-            company_data = self.external_df[
-                self.external_df['company_name'].str.contains(company_name, case=False, na=False)
-            ]
+            available_metrics = []
+            unavailable_metrics = []
             
-            if not company_data.empty:
-                external_industry = company_data['industry'].iloc[0]
-                sasb_industry = self._map_external_to_sasb_industry(external_industry)
+            for metric in metrics:
+                # Try to get the metric value
+                value = self.get_metric_value(company_name, year, metric)
                 
-                return {
-                    "company_name": company_name,
-                    "external_industry": external_industry,
-                    "mapped_sasb_industry": sasb_industry,
-                    "data_source": "external_dataset"
-                }
-            else:
-                return {
-                    "company_name": company_name,
-                    "error": f"Company '{company_name}' not found in dataset",
-                    "data_source": "company_not_found"
-                }
-                
-        except Exception as e:
-            print(f"⚠️ Error getting company industry: {str(e)}")
+                if value is not None:
+                    available_metrics.append({
+                        "metric_name": metric,
+                        "value": value,
+                        "status": "available"
+                    })
+                else:
+                    unavailable_metrics.append({
+                        "metric_name": metric,
+                        "status": "unavailable",
+                        "reason": "No data found in external dataset"
+                    })
+            
+            coverage_rate = len(available_metrics) / len(metrics) if metrics else 0
+            
             return {
+                "status": "checked",
                 "company_name": company_name,
-                "error": f"Error retrieving industry: {str(e)}",
-                "data_source": "error"
+                "year": year,
+                "total_metrics_checked": len(metrics),
+                "available_metrics": available_metrics,
+                "unavailable_metrics": unavailable_metrics,
+                "coverage_rate": coverage_rate,
+                "coverage_percentage": f"{coverage_rate * 100:.1f}%",
+                "suggestion": "Good data coverage" if coverage_rate > 0.7 else "Limited data available"
+            }
+            
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Error checking data availability: {str(e)}",
+                "company_name": company_name,
+                "year": year
             }
 
-    def _map_external_to_sasb_industry(self, external_industry: str) -> str:
-        """Map external dataset industry to SASB industry"""
-        industry_lower = external_industry.lower()
-        
-        if any(keyword in industry_lower for keyword in ["semiconductor", "chip", "electronics"]):
-            return "semiconductors"
-        elif any(keyword in industry_lower for keyword in ["bank", "financial", "finance"]):
-            return "commercial_banks"
-        else:
-            # Default based on common patterns
-            if "tech" in industry_lower:
-                return "semiconductors"
-            elif "finance" in industry_lower or "bank" in industry_lower:
+    def get_available_years(self, company_name: str) -> List[str]:
+        """Get available years for a specific company"""
+        try:
+            years = set()
+            
+            # Check industry-specific datasets
+            if hasattr(self, 'industry_datasets'):
+                for industry, dataset in self.industry_datasets.items():
+                    if not dataset.empty and 'company_name' in dataset.columns:
+                        company_rows = dataset[dataset['company_name'] == company_name]
+                        if not company_rows.empty and 'metric_year' in dataset.columns:
+                            company_years = company_rows['metric_year'].dropna().unique()
+                            for year in company_years:
+                                # Extract year from date strings like "2023-12-31"
+                                year_str = str(year)
+                                if '-' in year_str:
+                                    year_str = year_str.split('-')[0]
+                                years.add(year_str)
+            
+            # Fallback years if none found
+            if not years:
+                years = {"2023", "2022", "2021"}
+                
+            return sorted(list(years), reverse=True)
+            
+        except Exception as e:
+            print(f"⚠️ Error getting years for {company_name}: {e}")
+            return ["2023", "2022", "2021"]
+
+    def get_company_industry(self, company_name: str) -> str:
+        """Get the industry for a specific company"""
+        try:
+            if hasattr(self, 'industry_datasets'):
+                for industry, dataset in self.industry_datasets.items():
+                    if not dataset.empty and 'company_name' in dataset.columns:
+                        if company_name in dataset['company_name'].values:
+                            return industry
+            
+            # Fallback determination based on company name patterns
+            company_lower = company_name.lower()
+            if any(keyword in company_lower for keyword in ['bank', 'financial', 'credit']):
                 return "commercial_banks"
+            elif any(keyword in company_lower for keyword in ['semiconductor', 'micro', 'tech', 'electronics']):
+                return "semiconductors"
             else:
                 return "semiconductors"  # Default fallback
-
-    def get_company_metrics(self, company_name: str, year: str) -> Dict[str, Any]:
-        """Get all metrics for a company in a specific year - REAL DATA ONLY"""
-        if self.external_df is None or len(self.external_df) == 0:
-            return {
-                "company_name": company_name,
-                "year": year,
-                "error": "External dataset not loaded",
-                "metrics": {},
-                "total_metrics": 0,
-                "data_source": "no_data_available"
-            }
-        
-        try:
-            # Filter for company and year
-            company_filter = self.external_df['company_name'].str.contains(company_name, case=False, na=False)
-            year_filter = self.external_df['metric_year'].astype(str).str.contains(str(year), na=False)
-            
-            company_data = self.external_df[company_filter & year_filter]
-            
-            if not company_data.empty:
-                metrics = {}
-                for _, row in company_data.iterrows():
-                    metric_name = row['metric_name']
-                    metric_value = row['metric_value']
-                    
-                    if pd.notna(metric_value):
-                        metrics[metric_name] = {
-                            "value": float(metric_value),
-                            "year": year,
-                            "data_source": "external_dataset"
-                        }
-                
-                return {
-                    "company_name": company_name,
-                    "year": year,
-                    "metrics": metrics,
-                    "total_metrics": len(metrics),
-                    "data_source": "external_dataset"
-                }
-            else:
-                return {
-                    "company_name": company_name,
-                    "year": year,
-                    "error": f"No data found for company '{company_name}' in year {year}",
-                    "metrics": {},
-                    "total_metrics": 0,
-                    "data_source": "no_data_found"
-                }
                 
         except Exception as e:
-            print(f"⚠️ Error getting company metrics: {str(e)}")
-            return {
-                "company_name": company_name,
-                "year": year,
-                "error": f"Error retrieving metrics: {str(e)}",
-                "metrics": {},
-                "total_metrics": 0,
-                "data_source": "error"
-            }
+            print(f"⚠️ Error determining industry for {company_name}: {e}")
+            return "semiconductors"
 
-    def _get_demo_data(self, company_name: str, year: str) -> Dict[str, Any]:
-        """Get demo data when real data is not available"""
+
+
+    def get_calculation_inputs(self, company_name: str, year: str, required_metrics: List[str]) -> Dict[str, float]:
+        """Get input data for calculation models from external dataset"""
+        inputs = {}
+        
+        for metric in required_metrics:
+            value = self.get_metric_value(company_name, year, metric)
+            if value is not None:
+                inputs[metric.lower().replace(' ', '_')] = value
+        
+        return inputs
+
+    def get_all_companies(self) -> Dict[str, List[str]]:
+        """Get all companies organized by industry"""
+        self._ensure_datasets_loaded()
+
+        companies_by_industry = {}
+
+        if hasattr(self, 'industry_datasets'):
+            for industry, dataset in self.industry_datasets.items():
+                if not dataset.empty and 'company_name' in dataset.columns:
+                    # Get unique companies, sorted by record count
+                    company_counts = dataset['company_name'].dropna().value_counts()
+                    companies = [comp for comp in company_counts.index if str(comp).strip()]
+                    companies_by_industry[industry] = companies[:20]  # Top 20 companies
+
+        return companies_by_industry
+
+    def get_company_industry(self, company_name: str) -> Optional[str]:
+        """Get the industry for a given company name"""
+        self._ensure_datasets_loaded()
+
+        if not hasattr(self, 'industry_datasets'):
+            return None
+
+        # Search for company in each industry dataset
+        for industry, dataset in self.industry_datasets.items():
+            if not dataset.empty and 'company_name' in dataset.columns:
+                # Check if company exists in this industry
+                company_exists = dataset['company_name'].str.contains(
+                    company_name, case=False, na=False, regex=False
+                ).any()
+
+                if company_exists:
+                    print(f"📊 Found {company_name} in {industry}")
+                    return industry
+
+        print(f"⚠️ Company {company_name} not found in any industry dataset")
+        return None
+
+    @property
+    def error_categories(self) -> Dict[str, Dict[str, str]]:
+        """Error categories for standardized error responses"""
         return {
-            "company_name": company_name,
-            "year": year,
-            "metrics": {
-                "Total Energy Consumed": {"value": 2847000.0, "year": year, "data_source": "demo"},
-                "Percentage Grid Electricity": {"value": 85.2, "year": year, "data_source": "demo"},
-                "Gross Global Scope 1 Emissions": {"value": 145000.0, "year": year, "data_source": "demo"}
+            "EXTERNAL_DATASET_ACCESS_FAILED": {
+                "user_message": "Unable to access external dataset",
+                "suggestion": "Please try again or contact support"
             },
-            "total_metrics": 3,
-            "data_source": "demo_fallback"
+            "DATASET_VARIABLE_MAPPING_FAILED": {
+                "user_message": "Cannot map metric to dataset variable", 
+                "suggestion": "Check metric name and try again"
+            },
+            "COMPANY_NOT_FOUND": {
+                "user_message": "Company not found in dataset",
+                "suggestion": "Check company name spelling"
+            },
+            "DATA_NOT_AVAILABLE": {
+                "user_message": "Data not available for requested parameters",
+                "suggestion": "Try different company or year"
+            }
         }
-
-    def _map_industry_name(self, sasb_industry: str) -> str:
-        """Map SASB industry name to external dataset industry patterns"""
-        return sasb_industry.replace("_", " ")
-
-    def get_data_coverage_stats(self, company_name: str, year: str) -> Dict[str, Any]:
-        """Get data coverage statistics for a company and year"""
-        if self.external_df is None or len(self.external_df) == 0:
-            return {
-                "company_name": company_name,
-                "year": year,
-                "total_metrics_available": 0,
-                "coverage_percentage": 0,
-                "data_source": "no_external_data"
-            }
-        
-        try:
-            # Get total possible metrics (from schema or framework)
-            total_possible_metrics = 50  # Reasonable estimate for SASB framework
-            
-            # Get actual metrics for company/year
-            company_filter = self.external_df['company_name'].str.contains(company_name, case=False, na=False)
-            year_filter = self.external_df['metric_year'].astype(str).str.contains(str(year), na=False)
-            
-            available_metrics = self.external_df[company_filter & year_filter]
-            actual_count = len(available_metrics)
-            
-            coverage_percentage = (actual_count / total_possible_metrics) * 100 if total_possible_metrics > 0 else 0
-            
-            return {
-                "company_name": company_name,
-                "year": year,
-                "total_metrics_available": actual_count,
-                "total_possible_metrics": total_possible_metrics,
-                "coverage_percentage": round(coverage_percentage, 1),
-                "data_source": "external_dataset"
-            }
-            
-        except Exception as e:
-            print(f"⚠️ Error getting coverage stats: {str(e)}")
-            return {
-                "company_name": company_name,
-                "year": year,
-                "total_metrics_available": 0,
-                "coverage_percentage": 0,
-                "data_source": "error"
-            }
-
-    def _fuzzy_match_company(self, company_name: str) -> List[str]:
-        """Enhanced fuzzy company name matching"""
-        if self.external_df is None:
-            return []
-        
-        try:
-            # Exact match first
-            exact_matches = self.external_df[
-                self.external_df['company_name'].str.contains(company_name, case=False, na=False, regex=False)
-            ]['company_name'].unique().tolist()
-            
-            if exact_matches:
-                return exact_matches
-            
-            # Fuzzy matching - split company name into words
-            search_words = company_name.lower().split()
-            
-            matches = []
-            for _, row in self.external_df.iterrows():
-                company_full_name = str(row.get('company_name', '')).lower()
-                
-                # Check if any search word is in the company name
-                if any(word in company_full_name for word in search_words if len(word) > 2):
-                    matches.append(row.get('company_name', ''))
-            
-            # Remove duplicates and limit results
-            return list(set(matches))[:10]
-            
-        except Exception as e:
-            print(f"⚠️ Error in fuzzy matching: {str(e)}")
-            return []
 
     def _create_error_response(self, error_category: str, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Create standardized error response with user-friendly messages"""
@@ -1096,33 +1074,4 @@ class DataRetrievalService:
             "technical_message": message,
             "context": context,
             "timestamp": time.time()
-        }
-
-    def _validate_dataset_variable_mapping(self, sasb_metric: str) -> Dict[str, Any]:
-        """Validate if SASB metric can be mapped to dataset variables"""
-        external_variable = self._map_sasb_to_external(sasb_metric)
-        
-        if not external_variable:
-            return {
-                "valid": False,
-                "error_category": "DATASET_VARIABLE_MAPPING_FAILED",
-                "message": f"Cannot map SASB metric '{sasb_metric}' to dataset variable"
-            }
-        
-        # Check if the mapped variable exists in dataset
-        if self.external_df is not None:
-            matching_columns = [col for col in self.external_df.columns 
-                              if external_variable.lower() in col.lower()]
-            
-            if not matching_columns:
-                return {
-                    "valid": False,
-                    "error_category": "DATASET_VARIABLE_MAPPING_FAILED",
-                    "message": f"Mapped variable '{external_variable}' not found in dataset"
-                }
-        
-        return {
-            "valid": True,
-            "mapped_variable": external_variable,
-            "available_columns": matching_columns if self.external_df is not None else []
         }
