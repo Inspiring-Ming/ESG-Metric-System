@@ -162,7 +162,7 @@ class PortManager:
         port = PortManager.get_available_port(preferred_port)
         
         print(f"🚀 Starting ESG System on http://localhost:{port}")
-        print(f"📊 Frontend available at: http://localhost:{port}/demo")
+        print(f"📊 Frontend available at: http://localhost:{port}/")
         print(f"🔧 API available at: http://localhost:{port}/api/...")
         
         try:

@@ -2,26 +2,21 @@
 """
 ESG Knowledge Graph Services
 
-Consolidated service architecture with 4 core services:
-- DataRetrievalService: Unified data loading and external dataset access
-- UnifiedKnowledgeGraphService: All knowledge graph operations and CQ1-CQ7  
-- CalculationService: ESG calculations with integrated memory management
-- ComprehensiveReportService: All ESG report generation capabilities
-
-This consolidation eliminates:
-- calculation_memory_service (merged into CalculationService)
-- external_data_service (merged into DataRetrievalService)  
-- report_service (merged into ComprehensiveReportService)
+Clean service architecture with 4 core services:
+- KnowledgeGraphService: Knowledge graph operations and CQ1-CQ7 (RDF/SPARQL)
+- DataRetrievalService: External dataset access and company data retrieval
+- CalculationService: ESG metric calculations with semantic flow (CQ4→CQ5→CQ6→CQ7)
+- ReportService: Complete report generation (Word and PDF)
 """
 
+from .knowledge_graph_service import KnowledgeGraphService
 from .data_retrieval_service import DataRetrievalService
-from .unified_knowledge_graph_service import UnifiedKnowledgeGraphService
 from .calculation_service import CalculationService
-from .comprehensive_report_service import ComprehensiveReportService
+from .report_service import ReportService
 
 __all__ = [
+    'KnowledgeGraphService',
     'DataRetrievalService',
-    'UnifiedKnowledgeGraphService', 
     'CalculationService',
-    'ComprehensiveReportService'
+    'ReportService'
 ]

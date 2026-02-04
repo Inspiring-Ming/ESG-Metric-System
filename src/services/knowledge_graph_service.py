@@ -17,7 +17,7 @@ import time
 import pandas as pd
 from rdflib import Graph, Namespace, URIRef, Literal, RDF, RDFS
 
-class UnifiedKnowledgeGraphService:
+class KnowledgeGraphService:
     """
     Unified service handling all knowledge graph operations and competency questions
     """
@@ -177,11 +177,11 @@ class UnifiedKnowledgeGraphService:
             ?category rdfs:label "{category}" .
             ?category esg:consistsOf ?metric .
             ?metric rdfs:label ?metricLabel .
-            ?metric esg:hasCode ?code .
-            ?metric esg:hasDescription ?description .
-            ?metric esg:hasUnit ?unit .
-            ?metric esg:hasType ?type .
-            ?metric esg:hasCalculationMethod ?calculationMethod .
+            OPTIONAL {{ ?metric esg:hasCode ?code }} .
+            OPTIONAL {{ ?metric esg:hasDescription ?description }} .
+            OPTIONAL {{ ?metric esg:hasUnit ?unit }} .
+            OPTIONAL {{ ?metric esg:hasType ?type }} .
+            OPTIONAL {{ ?metric esg:hasCalculationMethod ?calculationMethod }} .
         }}
         """
         
@@ -260,15 +260,17 @@ class UnifiedKnowledgeGraphService:
         SELECT ?metric ?metricLabel ?code ?unit ?type ?calculationMethod ?model ?modelLabel ?modelDescription WHERE {{
             ?metric a esg:Metric .
             ?metric rdfs:label ?metricLabel .
-            ?metric esg:hasCode ?code .
-            ?metric esg:hasUnit ?unit .
-            ?metric esg:hasType ?type .
-            ?metric esg:hasCalculationMethod ?calculationMethod .
+            OPTIONAL {{ ?metric esg:hasCode ?code }} .
+            OPTIONAL {{ ?metric esg:hasUnit ?unit }} .
+            OPTIONAL {{ ?metric esg:hasType ?type }} .
+            OPTIONAL {{ ?metric esg:hasCalculationMethod ?calculationMethod }} .
             
             FILTER (
-                ?code = "{metric_identifier}" || 
+                (BOUND(?code) && ?code = "{metric_identifier}") || 
                 ?metricLabel = "{metric_identifier}" ||
-                CONTAINS(LCASE(?metricLabel), LCASE("{metric_identifier}"))
+                CONTAINS(LCASE(?metricLabel), LCASE("{metric_identifier}")) ||
+                CONTAINS(LCASE(REPLACE(?metricLabel, " ", "")), LCASE("{metric_identifier}")) ||
+                CONTAINS(LCASE("{metric_identifier}"), LCASE(REPLACE(?metricLabel, " ", "")))
             )
             
             OPTIONAL {{ 
@@ -377,7 +379,7 @@ class UnifiedKnowledgeGraphService:
             OPTIONAL {{ ?model esg:hasFormula ?formula . }}
             OPTIONAL {{ ?model esg:hasDescription ?description . }}
             OPTIONAL {{ 
-                ?model esg:requiresInput ?input .
+                ?model esg:requiresInputFrom ?input .
                 ?input rdfs:label ?inputLabel .
             }}
         }}
@@ -401,17 +403,7 @@ class UnifiedKnowledgeGraphService:
                     if input_name not in required_inputs:
                         required_inputs.append(input_name)
         
-        # Fallback to calculation service if RDF data is incomplete
-        try:
-            model_info = calculation_service.supported_models.get(model_name, {})
-            if not model_equation:
-                model_equation = model_info.get("formula", "")
-            if not model_description:
-                model_description = model_info.get("description", "")
-            if not required_inputs:
-                required_inputs = model_info.get("inputs", [])
-        except:
-            pass
+        # Note: No fallback to calculation service - Knowledge Graph is the single source of truth
         
         # Get alignment data to find external dataset mappings
         alignment_data = self.data_service.load_alignment_data(industry)
@@ -453,15 +445,58 @@ class UnifiedKnowledgeGraphService:
         if industry not in self.supported_industries:
             raise ValueError(f"Industry {industry} not supported")
         
-        # Get implementation details from calculation service
+        # Build RDF graph if not already built
+        if not hasattr(self, 'rdf_graph'):
+            self._build_rdf_graph()
+        
+        # Query RDF graph for implementation information
+        implementation_query = f"""
+        PREFIX esg: <http://example.org/esg#>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        
+        SELECT ?impl ?implLabel ?language ?filePath ?function ?description ?inputParams ?returnType ?validation WHERE {{
+            ?model rdfs:label "{model_name}" .
+            ?model a esg:Model .
+            ?model esg:executesWith ?impl .
+            ?impl rdfs:label ?implLabel .
+            OPTIONAL {{ ?impl esg:hasLanguage ?language . }}
+            OPTIONAL {{ ?impl esg:hasFilePath ?filePath . }}
+            OPTIONAL {{ ?impl esg:hasFunction ?function . }}
+            OPTIONAL {{ ?impl esg:hasDescription ?description . }}
+            OPTIONAL {{ ?impl esg:hasInputParameters ?inputParams . }}
+            OPTIONAL {{ ?impl esg:hasReturnType ?returnType . }}
+            OPTIONAL {{ ?impl esg:hasValidation ?validation . }}
+        }}
+        """
+        
+        rdf_result = self.execute_sparql_query(implementation_query)
+        
+        # Extract implementation information from RDF
+        implementation_info = None
+        
+        if rdf_result["results"]:
+            for row in rdf_result["results"]:
+                if hasattr(row, 'implLabel') and row.implLabel:
+                    implementation_info = {
+                        "implementation_name": str(row.implLabel),
+                        "language": str(row.language) if hasattr(row, 'language') and row.language else "Python",
+                        "file_path": str(row.filePath) if hasattr(row, 'filePath') and row.filePath else None,
+                        "function_name": str(row.function) if hasattr(row, 'function') and row.function else None,
+                        "description": str(row.description) if hasattr(row, 'description') and row.description else "",
+                        "input_parameters": str(row.inputParams) if hasattr(row, 'inputParams') and row.inputParams else "",
+                        "return_type": str(row.returnType) if hasattr(row, 'returnType') and row.returnType else "float",
+                        "validation_rules": str(row.validation) if hasattr(row, 'validation') and row.validation else ""
+                    }
+                    break  # Take the first match
+        
+        if not implementation_info:
+            raise ValueError(f"No implementation found for model {model_name}")
+        
+        # Get model complexity from calculation service for additional info
         try:
-            model_info = calculation_service.supported_models.get(model_name)
-            if not model_info:
-                raise ValueError(f"Model {model_name} not found")
-                
             complexity_info = calculation_service.get_model_complexity(model_name)
         except:
-            raise ValueError(f"Model {model_name} not supported")
+            complexity_info = {"complexity": "unknown", "input_count": 0}
         
         return {
             "competency_question": "CQ6",
@@ -469,26 +504,31 @@ class UnifiedKnowledgeGraphService:
             "industry": industry,
             "model_name": model_name,
             "implementation_details": {
-                "execution_engine": "CalculationService",
-                "formula_parser": "custom_percentage_calculator",
-                "input_validation": "required_inputs_check",
-                "error_handling": "missing_input_validation"
+                "implementation_name": implementation_info["implementation_name"],
+                "execution_language": implementation_info["language"],
+                "file_path": implementation_info["file_path"],
+                "function_name": implementation_info["function_name"],
+                "description": implementation_info["description"],
+                "input_parameters": implementation_info["input_parameters"],
+                "return_type": implementation_info["return_type"],
+                "validation_rules": implementation_info["validation_rules"]
             },
             "performance_characteristics": {
                 "complexity_level": complexity_info.get("complexity"),
                 "input_count": complexity_info.get("input_count"),
-                "estimated_execution_time": complexity_info.get("estimated_execution_time"),
-                "formula": model_info.get("formula")
+                "estimated_execution_time": complexity_info.get("estimated_execution_time")
             },
             "code_location": {
-                "service_class": "CalculationService",
-                "method": "execute_calculation",
-                "formula_parser": "_calculate_by_formula"
+                "module_path": f"src.models.{implementation_info['file_path'].replace('models/', '').replace('.py', '')}" if implementation_info["file_path"] else None,
+                "function_name": implementation_info["function_name"],
+                "file_path": implementation_info["file_path"]
             },
             "data_type": "implementation_specification",
             "verification": {
-                "implementation_tested": True,
-                "formula_verified": True
+                "implementation_source": "RDF Knowledge Graph",
+                "query_method": "SPARQL_RDF",
+                "implementation_found": True,
+                "can_be_dynamically_loaded": implementation_info["file_path"] is not None and implementation_info["function_name"] is not None
             }
         }
     
@@ -508,12 +548,12 @@ class UnifiedKnowledgeGraphService:
         
         SELECT ?metric ?metricLabel ?datasetVar ?datasetVarLabel ?datasource ?datasourceLabel ?confidence ?unitCompatible ?reason WHERE {{
             ?metric a esg:Metric .
+            ?metric rdfs:label "{datapoint_name}" .
             ?metric rdfs:label ?metricLabel .
             ?metric esg:obtainedFrom ?datasetVar .
-            ?datasetVar rdfs:label "{datapoint_name}" .
             ?datasetVar rdfs:label ?datasetVarLabel .
-            ?datasetVar esg:sourceFrom ?datasource .
-            ?datasource rdfs:label ?datasourceLabel .
+            OPTIONAL {{ ?datasetVar esg:SourcesFrom ?datasource . }}
+            OPTIONAL {{ ?datasource rdfs:label ?datasourceLabel . }}
             OPTIONAL {{ ?datasetVar esg:hasConfidenceScore ?confidence . }}
             OPTIONAL {{ ?datasetVar esg:isUnitCompatible ?unitCompatible . }}
             OPTIONAL {{ ?datasetVar esg:alignmentReason ?reason . }}
@@ -561,6 +601,8 @@ class UnifiedKnowledgeGraphService:
         if datasource_name:
             result.update({
                 "original_datasource": {
+                    "dataset_variable": dataset_variable,
+                    "source_name": datasource_name,
                     "provider": "Eurofidai/Clarity AI",
                     "dataset_name": datasource_name,
                     "dataset_size_gb": 1.8,
@@ -613,7 +655,12 @@ class UnifiedKnowledgeGraphService:
                 })
             else:
                 result.update({
-                    "original_datasource": "not_found",
+                    "original_datasource": {
+                        "dataset_variable": None,
+                        "source_name": "not_found",
+                        "provider": "unknown",
+                        "status": "not_found"
+                    },
                     "verification": {
                         "exists_in_external_dataset": datapoint_exists_in_csv,
                         "alignment_found": False,
@@ -717,9 +764,12 @@ class UnifiedKnowledgeGraphService:
     def _build_rdf_graph(self):
         """Build RDF knowledge graph from JSON data and save to file"""
         import os
-        
-        # Define RDF file path
-        rdf_file_path = "data/rdf/esg_knowledge_graph.ttl"
+        from pathlib import Path
+
+        # Get project root and define absolute RDF file path
+        current_file = Path(__file__).resolve()
+        project_root = current_file.parent.parent.parent
+        rdf_file_path = str(project_root / "data/rdf/esg_knowledge_graph.ttl")
         
         # Check if RDF file already exists and is recent
         if os.path.exists(rdf_file_path):
