@@ -22,6 +22,20 @@ A hosted version is available at: **https://esgalaxy.com.ngrok.dev**
 
 > Note: The demo runs on a local machine via ngrok tunnel and may not be available at all times.
 
+### Hosting the Live Demo Locally
+
+To expose your local server via ngrok:
+
+```bash
+# 1. Start the server
+python run_comprehensive_system_demo.py
+
+# 2. In a separate terminal, start ngrok with the custom domain
+ngrok http 5000 --domain=esgalaxy.com.ngrok.dev
+```
+
+This requires an ngrok account with the `esgalaxy.com.ngrok.dev` domain configured.
+
 ---
 
 ## Overview
@@ -78,7 +92,7 @@ The system starts on port 5000 (auto-increments if occupied). Open `http://local
 ```bash
 curl http://localhost:5000/api/KGservice/industries
 curl http://localhost:5000/api/DRservice/industries/semiconductors/companies
-curl http://localhost:5000/api/v1/system/health
+curl http://localhost:5000/api/SYSservice/health
 ```
 
 ---
@@ -99,6 +113,9 @@ ESG-Metric-System/
 │   │   ├── calculation_service.py         # ESG metric calculations
 │   │   └── report_service.py             # PDF and Word report generation
 │   ├── models/                            # Calculation model definitions
+│   ├── evaluation/
+│   │   ├── performance_evaluator.py      # Performance diagram generator
+│   │   └── comprehensive_performance_analysis.png
 │   └── utils/
 │       └── port_manager.py               # Port detection and process management
 │
@@ -198,10 +215,6 @@ All endpoints return JSON. The API is organized by service prefix.
 | POST | `/reports/generate-pdf` | Generate a PDF report |
 | POST | `/reports/generate-word` | Generate a Word report |
 | GET | `/reports/download/{filename}` | Download a generated report |
-
-### Legacy Endpoints
-
-All endpoints are also available under `/api/v1/*` for backward compatibility.
 
 ---
 
