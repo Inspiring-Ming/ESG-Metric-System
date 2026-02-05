@@ -1,0 +1,474 @@
+dataContractSpecification: 1.2.1
+id: esg-metric-system-data
+info:
+  title: ESG Metric System Data Contract
+  version: 1.0.0
+  description: |
+    Data contract for the OntoMetric ESG Knowledge Graph System.
+
+    Defines the schema, quality rules, and service-level expectations for three
+    external datasets consumed by the Data Retrieval Service (DRservice):
+
+    1. Eurofidai Semiconductors ESG Dataset (105K+ records)
+    2. Eurofidai Commercial Banks ESG Dataset (317K+ records)
+    3. WRDS North America Financial Dataset (496 records)
+
+    These datasets feed into CQ7 (data source resolution) and the Calculation
+    Service for computing SASB-aligned ESG metrics.
+  owner: OntoMetric Research Team
+  status: active
+  contact:
+    name: Inspiring-Ming
+    url: https://github.com/Inspiring-Ming/ESG-Metric-System
+
+servers:
+  local:
+    type: local
+    environment: development
+    location: data/External dataset/
+    format: csv
+    description: |
+      CSV files stored in the project repository. Loaded lazily on first
+      API request by DataRetrievalService._load_external_dataset().
+
+terms:
+  usage: |
+    Data is used for ESG metric calculation, report generation, and academic
+    research. Metric values originate from Eurofidai (ESG environmental data)
+    and WRDS Compustat (financial data). No synthetic or demo data is provided.
+  limitations: |
+    - Eurofidai datasets are annual snapshots; not suitable for real-time analysis.
+    - WRDS financial data covers North American semiconductor companies only.
+    - Some metric values are ESTIMATED by the provider (lower confidence).
+    - Boolean metrics are stored as numeric (0.0/1.0) and require conversion.
+  policies:
+    - name: academic-use
+      description: Data sourced under academic research licenses from Eurofidai and WRDS.
+
+# ============================================================
+# Data Models (one per CSV file)
+# ============================================================
+
+models:
+  # ----------------------------------------------------------
+  # Eurofidai ESG Datasets (shared schema for both industries)
+  # ----------------------------------------------------------
+  eurofidai_semiconductors:
+    description: |
+      Eurofidai ESG environment dataset for semiconductor industry companies.
+      Contains reported, calculated, and estimated ESG metrics across E/S/G pillars.
+    type: table
+    config:
+      file: Semiconductors_Eurofidai_EnvironmentData.csv
+      recordCount: 105528
+      coverage: Global semiconductor companies
+    fields:
+      company_name:
+        description: Company legal name as reported by the data provider.
+        type: text
+        required: true
+        examples:
+          - "Taiwan Semiconductor Manufacturing Co Ltd"
+          - "STMicroelectronics NV"
+          - "NVIDIA Corp"
+      perm_id:
+        description: Permanent entity identifier assigned by the data provider.
+        type: long
+        required: true
+        examples:
+          - 4295869834
+          - 4296741969
+      data_type:
+        description: Native data type of the metric value.
+        type: text
+        required: true
+        enum: ["int", "float", "string"]
+      disclosure:
+        description: |
+          How the metric value was obtained. REPORTED = company-disclosed,
+          CALCULATED = derived by provider, ESTIMATED = imputed/modeled.
+        type: text
+        required: true
+        enum: ["REPORTED", "CALCULATED", "ESTIMATED"]
+      metric_description:
+        description: Human-readable description of the ESG metric.
+        type: text
+        required: true
+      metric_name:
+        description: |
+          Standardised metric code used for SASB-to-dataset mapping.
+          Maps to esg:DatasetVariable in the RDF knowledge graph via CQ7.
+        type: text
+        required: true
+        examples:
+          - "CO2DIRECTSCOPE1"
+          - "ENERGYUSETOTAL"
+          - "WATERWITHDRAWALTOTAL"
+          - "HAZARDOUSWASTE"
+      metric_unit:
+        description: Unit of measurement for the metric value.
+        type: text
+        required: true
+        examples:
+          - "Metric tonnes"
+          - "Cubic meters"
+          - "Yes/No"
+          - "%"
+          - "GJ"
+      metric_value:
+        description: |
+          The metric measurement. Numeric for quantitative metrics, 0.0/1.0
+          for boolean Yes/No metrics. May be null when data is unavailable.
+        type: double
+        required: false
+        examples:
+          - 1250000.0
+          - 0.0
+          - 85.7
+      metric_year:
+        description: Reporting period end date. Year extracted by the system.
+        type: date
+        required: true
+        format: "%Y-%m-%d"
+        examples:
+          - "2023-12-31"
+          - "2022-12-31"
+      nb_points_of_observations:
+        description: Number of peer companies used in the provider's analysis.
+        type: integer
+        required: false
+      metric_period:
+        description: Reporting period qualifier (often blank for annual data).
+        type: text
+        required: false
+      provider_name:
+        description: Data provider name.
+        type: text
+        required: true
+        enum: ["Clarity AI"]
+      reported_date:
+        description: Date the metric was reported or published.
+        type: timestamp
+        required: false
+        format: "%Y-%m-%d %H:%M:%S"
+      pillar:
+        description: ESG pillar classification.
+        type: text
+        required: false
+        enum: ["E", "S", "G"]
+      headquarter_country:
+        description: Country where the company is headquartered.
+        type: text
+        required: false
+      Company Name:
+        description: Duplicate of company_name (legacy column from source).
+        type: text
+        required: false
+      industry:
+        description: Industry classification label.
+        type: text
+        required: true
+        enum: ["Semiconductors"]
+    quality:
+      - type: custom
+        description: All records must have a non-empty company_name.
+        rule: company_name IS NOT NULL AND company_name != ''
+      - type: custom
+        description: metric_name must be a recognised Eurofidai variable code.
+        rule: metric_name MATCHES '^[A-Z][A-Z0-9_]+$'
+      - type: custom
+        description: disclosure must be one of the three allowed values.
+        rule: disclosure IN ('REPORTED', 'CALCULATED', 'ESTIMATED')
+      - type: custom
+        description: metric_year must be a valid date.
+        rule: metric_year IS NOT NULL
+
+  eurofidai_commercial_banks:
+    description: |
+      Eurofidai ESG environment dataset for commercial banking industry.
+      Same schema as semiconductors dataset.
+    type: table
+    config:
+      file: Commercial_Banks_Eurofidai_EnvironmentData.csv
+      recordCount: 317305
+      coverage: Global commercial banks
+    fields:
+      company_name:
+        description: Company legal name as reported by the data provider.
+        type: text
+        required: true
+      perm_id:
+        description: Permanent entity identifier.
+        type: long
+        required: true
+      data_type:
+        description: Native data type of the metric value.
+        type: text
+        required: true
+        enum: ["int", "float", "string"]
+      disclosure:
+        description: How the metric value was obtained.
+        type: text
+        required: true
+        enum: ["REPORTED", "CALCULATED", "ESTIMATED"]
+      metric_description:
+        description: Human-readable description of the ESG metric.
+        type: text
+        required: true
+      metric_name:
+        description: Standardised metric code for SASB mapping.
+        type: text
+        required: true
+        examples:
+          - "CO2DIRECTSCOPE1"
+          - "CO2INDIRECTSCOPE2"
+          - "WATERWITHDRAWALTOTAL"
+      metric_unit:
+        description: Unit of measurement.
+        type: text
+        required: true
+      metric_value:
+        description: The metric measurement (nullable).
+        type: double
+        required: false
+      metric_year:
+        description: Reporting period end date.
+        type: date
+        required: true
+        format: "%Y-%m-%d"
+      nb_points_of_observations:
+        description: Number of peer companies in analysis.
+        type: integer
+        required: false
+      metric_period:
+        description: Reporting period qualifier.
+        type: text
+        required: false
+      provider_name:
+        description: Data provider name.
+        type: text
+        required: true
+        enum: ["Clarity AI"]
+      reported_date:
+        description: Date the metric was reported.
+        type: timestamp
+        required: false
+      pillar:
+        description: ESG pillar classification.
+        type: text
+        required: false
+        enum: ["E", "S", "G"]
+      headquarter_country:
+        description: Company headquarters country.
+        type: text
+        required: false
+      Company Name:
+        description: Duplicate of company_name (legacy column).
+        type: text
+        required: false
+      industry:
+        description: Industry classification label.
+        type: text
+        required: true
+        enum: ["Commercial Banks"]
+    quality:
+      - type: custom
+        description: All records must have a non-empty company_name.
+        rule: company_name IS NOT NULL AND company_name != ''
+      - type: custom
+        description: metric_name must be a recognised variable code.
+        rule: metric_name MATCHES '^[A-Z][A-Z0-9_]+$'
+      - type: custom
+        description: disclosure must be one of the three allowed values.
+        rule: disclosure IN ('REPORTED', 'CALCULATED', 'ESTIMATED')
+
+  # ----------------------------------------------------------
+  # WRDS Financial Dataset
+  # ----------------------------------------------------------
+  wrds_semiconductor_financial:
+    description: |
+      WRDS Compustat financial dataset for North American semiconductor companies.
+      Provides revenue (revt) data needed for intensity metric calculations
+      (e.g., GHG Emission Intensity = (Scope1 + Scope2) / Revenue).
+    type: table
+    config:
+      file: "Semiconductor_WRDS_FinancialData(NorthAmerica).csv"
+      recordCount: 496
+      coverage: North American semiconductor companies
+    fields:
+      companyname:
+        description: Company legal name as listed in Compustat.
+        type: text
+        required: true
+        examples:
+          - "ACM RESEARCH INC"
+          - "ADVANCED MICRO DEVICES"
+          - "NVIDIA CORP"
+      FinancialVariable:
+        description: |
+          Compustat variable code. Currently only 'revt' (total revenue)
+          is used, mapped to esg:revt in the knowledge graph.
+        type: text
+        required: true
+        enum: ["revt"]
+      Datadate:
+        description: Financial reporting date.
+        type: text
+        required: true
+        format: "%d/%m/%Y"
+        examples:
+          - "31/12/2023"
+          - "31/12/2022"
+      Unit:
+        description: Unit of measurement for the financial value.
+        type: text
+        required: true
+        enum: ["USD million"]
+      Value:
+        description: Financial metric value in the specified unit.
+        type: double
+        required: true
+        examples:
+          - 27.371
+          - 60922.0
+    quality:
+      - type: custom
+        description: All records must have a non-empty company name.
+        rule: companyname IS NOT NULL AND companyname != ''
+      - type: custom
+        description: Revenue values must be non-negative.
+        rule: Value >= 0
+      - type: custom
+        description: Date must be parseable in DD/MM/YYYY format.
+        rule: Datadate MATCHES '^\d{2}/\d{2}/\d{4}$'
+
+# ============================================================
+# SASB-to-Dataset Variable Mappings
+# ============================================================
+
+definitions:
+  sasb_variable_mappings:
+    title: SASB Metric to Dataset Variable Mappings
+    description: |
+      Maps internal SASB metric names used by the Calculation Service
+      to external dataset variable codes. Each mapping includes the
+      confidence score from the RDF knowledge graph.
+    fields:
+      total_energy_consumed:
+        target: ENERGYUSETOTAL
+        confidence: 100
+        source: eurofidai_semiconductors
+      percentage_grid_electricity:
+        target: ELECTRICITYPURCHASED
+        confidence: 95
+        source: eurofidai_semiconductors
+      percentage_renewable_energy:
+        target: RENEWENERGYPURCHASED
+        confidence: 95
+        source: eurofidai_semiconductors
+      gross_global_scope_1_emissions:
+        target: CO2DIRECTSCOPE1
+        confidence: 100
+        source: eurofidai_semiconductors, eurofidai_commercial_banks
+      scope_2_emissions:
+        target: CO2INDIRECTSCOPE2
+        confidence: 100
+        source: eurofidai_semiconductors, eurofidai_commercial_banks
+      revenue:
+        target: revt
+        confidence: 100
+        source: wrds_semiconductor_financial
+      total_water_withdrawn:
+        target: WATERWITHDRAWALTOTAL
+        confidence: 100
+        source: eurofidai_semiconductors
+      total_water_consumed:
+        target: WATERCONSUMPTIONTOTAL
+        confidence: 100
+        source: eurofidai_semiconductors
+      hazardous_waste:
+        target: HAZARDOUSWASTE
+        confidence: 100
+        source: eurofidai_semiconductors
+      recycled_hazardous_waste:
+        target: RECYCLEDHAZARDOUSWASTE
+        confidence: 100
+        source: eurofidai_semiconductors
+      total_waste_generated:
+        target: WASTETOTAL
+        confidence: 100
+        source: eurofidai_semiconductors
+      pfc_emissions:
+        target: ANALYTICESTIMATEDCO2TOTAL
+        confidence: 60
+        source: eurofidai_semiconductors
+        note: Estimated PFC emissions; lower confidence due to provider estimation.
+      emissions_targets:
+        target: TARGETS_EMISSIONS
+        confidence: 80
+        source: eurofidai_semiconductors
+        note: Policy/discussion variable, not a quantitative measurement.
+
+# ============================================================
+# Service-Level Expectations
+# ============================================================
+
+servicelevels:
+  availability:
+    description: Data files must be present in the repository at startup.
+    percentage: 100%
+  freshness:
+    description: |
+      Datasets are annual snapshots. New data expected once per year
+      when Eurofidai and WRDS publish updated records.
+    threshold: 365d
+    timestampField: metric_year
+  frequency:
+    description: Annual batch update.
+    type: batch
+    interval: yearly
+  retention:
+    description: All historical years retained; no data is deleted.
+    unlimited: true
+
+# ============================================================
+# Data Transformations (applied by DataRetrievalService)
+# ============================================================
+
+customProperties:
+  transformations:
+    - name: year_extraction
+      description: Extracts 4-digit year from metric_year date field.
+      input: "2023-12-31"
+      output: "2023"
+      appliedIn: data_retrieval_service.get_available_years()
+    - name: boolean_conversion
+      description: Converts numeric 0.0/1.0 to string Yes/No for boolean metrics.
+      input: "1.0 (metric_unit = Yes/No)"
+      output: "Yes"
+      appliedIn: data_retrieval_service.get_metric_value()
+    - name: company_fuzzy_match
+      description: Case-insensitive substring match for company name lookup.
+      input: "Taiwan Semiconductor"
+      output: "Taiwan Semiconductor Manufacturing Co Ltd"
+      appliedIn: data_retrieval_service.get_metric_value()
+    - name: wrds_date_parse
+      description: Parses DD/MM/YYYY dates from WRDS dataset.
+      input: "31/12/2023"
+      output: "2023"
+      appliedIn: data_retrieval_service.get_available_years()
+    - name: sasb_variable_resolution
+      description: |
+        Maps SASB metric identifiers to external dataset variable codes
+        using the _map_sasb_to_external() lookup table.
+      input: "total_energy_consumed"
+      output: "ENERGYUSETOTAL"
+      appliedIn: data_retrieval_service._map_sasb_to_external()
+
+tags:
+  - esg
+  - sasb
+  - eurofidai
+  - wrds
+  - knowledge-graph
+  - data-contract
