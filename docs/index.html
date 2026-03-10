@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESGMKG System: Ontology-Driven ESG Metric System for Report Generation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0f3460 0%, #16213e 50%, #1a1a2e 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 60px 50px;
+            max-width: 960px;
+            width: 100%;
+            margin: 0 auto;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Header */
+        .logo {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #0f3460 0%, #3282b8 50%, #0f3460 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            margin-bottom: 8px;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .subtitle {
+            font-size: 1.15rem;
+            color: #4a5568;
+            text-align: center;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            animation: fadeInUp 0.8s ease-out 0.1s both;
+        }
+
+        .badge-row {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .badge-primary {
+            background: linear-gradient(135deg, #0f3460 0%, #3282b8 100%);
+            color: white;
+        }
+
+        .badge-secondary {
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+            color: white;
+        }
+
+        .badge-accent {
+            background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+            color: white;
+        }
+
+        /* Description */
+        .description {
+            color: #4a5568;
+            line-height: 1.8;
+            margin-bottom: 35px;
+            font-size: 1.02rem;
+            text-align: center;
+            animation: fadeInUp 0.8s ease-out 0.3s both;
+        }
+
+        /* Links */
+        .links {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 45px;
+            flex-wrap: wrap;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 28px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .link-btn.primary {
+            background: linear-gradient(135deg, #0f3460 0%, #3282b8 100%);
+            color: white;
+        }
+
+        .link-btn.secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+
+        .link-btn.live {
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+            color: white;
+        }
+
+        .link-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .link-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Section Headers */
+        .section-header {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid;
+            border-image: linear-gradient(135deg, #0f3460, #3282b8) 1;
+        }
+
+        /* Architecture */
+        .architecture-section {
+            margin-bottom: 45px;
+            animation: fadeInUp 0.8s ease-out 0.5s both;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 25px;
+        }
+
+        .feature {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: left;
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+
+        .feature:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .feature:nth-child(1) { border-left-color: #0f3460; }
+        .feature:nth-child(2) { border-left-color: #3282b8; }
+        .feature:nth-child(3) { border-left-color: #00b894; }
+        .feature:nth-child(4) { border-left-color: #6c5ce7; }
+
+        .feature h3 {
+            color: #2d3748;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+
+        .feature p {
+            color: #718096;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        /* Use Cases */
+        .use-cases-section {
+            margin-bottom: 45px;
+            animation: fadeInUp 0.8s ease-out 0.6s both;
+        }
+
+        .use-case-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .use-case {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .use-case:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .use-case img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .use-case-label {
+            padding: 10px 14px;
+            background: #f7fafc;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        /* Demo Screenshots */
+        .demo-section {
+            margin-bottom: 45px;
+            animation: fadeInUp 0.8s ease-out 0.7s both;
+        }
+
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        .screenshot {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .screenshot:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .screenshot img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .screenshot-label {
+            padding: 10px 14px;
+            background: #f7fafc;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        /* GUI Section */
+        .gui-section {
+            margin-bottom: 45px;
+            animation: fadeInUp 0.8s ease-out 0.75s both;
+        }
+
+        .gui-full {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .gui-full img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Report Section */
+        .report-section {
+            margin-bottom: 45px;
+            animation: fadeInUp 0.8s ease-out 0.8s both;
+        }
+
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .report-sample {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .report-sample:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .report-sample img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .report-label {
+            padding: 10px 14px;
+            background: #f7fafc;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        /* Performance Section */
+        .performance-section {
+            margin-bottom: 45px;
+            animation: fadeInUp 0.8s ease-out 0.85s both;
+        }
+
+        .perf-img {
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .perf-img img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* CQ Section */
+        .cq-section {
+            margin-bottom: 45px;
+            animation: fadeInUp 0.8s ease-out 0.9s both;
+        }
+
+        .cq-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .cq-table th {
+            background: linear-gradient(135deg, #0f3460 0%, #3282b8 100%);
+            color: white;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .cq-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #4a5568;
+        }
+
+        .cq-table tr:hover {
+            background: #f7fafc;
+        }
+
+        .cq-table th:first-child,
+        .cq-table td:first-child {
+            font-weight: 600;
+            color: #0f3460;
+            width: 50px;
+        }
+
+        /* Tech Stack */
+        .tech-section {
+            margin-bottom: 45px;
+            animation: fadeInUp 0.8s ease-out 0.95s both;
+        }
+
+        .tech-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .tech-tag {
+            padding: 8px 18px;
+            border-radius: 25px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            background: #edf2f7;
+            color: #2d3748;
+            transition: all 0.3s ease;
+        }
+
+        .tech-tag:hover {
+            background: linear-gradient(135deg, #0f3460 0%, #3282b8 100%);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Citation */
+        .citation-section {
+            background: #1a202c;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: left;
+            animation: fadeInUp 0.8s ease-out 1s both;
+        }
+
+        .citation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .citation-title {
+            color: #a0aec0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .copy-btn {
+            background: #4a5568;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            background: #3282b8;
+        }
+
+        .copy-btn.copied {
+            background: #48bb78;
+        }
+
+        .citation-code {
+            background: #2d3748;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+
+        .citation-code pre {
+            color: #e2e8f0;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.82rem;
+            line-height: 1.6;
+            margin: 0;
+            white-space: pre-wrap;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #a0aec0;
+            font-size: 0.85rem;
+            animation: fadeInUp 0.8s ease-out 1.1s both;
+        }
+
+        .footer a {
+            color: #3282b8;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 700px) {
+            .container {
+                padding: 30px 20px;
+            }
+            .logo {
+                font-size: 2rem;
+            }
+            .links {
+                flex-direction: column;
+            }
+            .link-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .use-case-grid {
+                grid-template-columns: 1fr;
+            }
+            .report-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <h1 class="logo">ESGMKG System</h1>
+        <h2 class="subtitle">Ontology-Driven ESG Metric System for Report Generation</h2>
+
+        <div class="badge-row">
+            <span class="badge badge-primary">PhD Thesis &mdash; Chapter 5</span>
+            <span class="badge badge-secondary">SASB &middot; IFRS &middot; TCFD</span>
+            <span class="badge badge-accent">422K+ ESG Records</span>
+        </div>
+
+        <!-- Description -->
+        <p class="description">
+            An ontology-driven ESG metric system that uses the ESGMKG knowledge graph (525 RDF triples) as its authoritative knowledge source to govern end-to-end metric execution and report generation. The system interprets ontology-defined relationships to identify context-appropriate metrics, distinguish between directly measured and derived metrics, resolve declared metric dependencies, and coordinate access to data sources and executable calculation models &mdash; covering 40+ companies across semiconductors and commercial banking.
+        </p>
+
+        <!-- Links -->
+        <div class="links">
+            <a href="https://github.com/Inspiring-Ming/ESG-Metric-System" class="link-btn primary" target="_blank">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+                GitHub
+            </a>
+            <a href="https://esgalaxy.com.ngrok.dev" class="link-btn live" target="_blank">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                Live Demo
+            </a>
+            <a href="https://doi.org/10.3390/electronics13091719" class="link-btn secondary" target="_blank">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                Related Paper
+            </a>
+        </div>
+
+        <!-- 4-Service Architecture -->
+        <div class="architecture-section">
+            <h3 class="section-header">Service-Oriented Architecture</h3>
+            <div class="features">
+                <div class="feature">
+                    <h3>Knowledge Graph Service</h3>
+                    <p>RDF/SPARQL-based ontology serving CQ1&ndash;CQ7 competency questions. Maps industries to frameworks, categories, metrics, and calculation models.</p>
+                </div>
+                <div class="feature">
+                    <h3>Data Retrieval Service</h3>
+                    <p>Coordinates access to external CSV datasets (422K+ records). Retrieves company-specific ESG data elements through controlled service interactions.</p>
+                </div>
+                <div class="feature">
+                    <h3>Calculation Service</h3>
+                    <p>Dependency-aware metric computation. Distinguishes direct measurement from derived metrics and invokes appropriate calculation models.</p>
+                </div>
+                <div class="feature">
+                    <h3>Report Service</h3>
+                    <p>Assembles computed metrics into structured PDF and Word reports with executive summary, data lineage, and methodology sections.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Use Cases -->
+        <div class="use-cases-section">
+            <h3 class="section-header">System Use Cases</h3>
+            <div class="use-case-grid">
+                <div class="use-case">
+                    <img src="images/Chapter 5 UC1 Metric Discovery.png" alt="UC1: Metric Discovery" loading="lazy">
+                    <div class="use-case-label">UC1: Metric Discovery</div>
+                </div>
+                <div class="use-case">
+                    <img src="images/Chapter 5 UC2 Metric Calculation.png" alt="UC2: Metric Calculation" loading="lazy">
+                    <div class="use-case-label">UC2: Metric Calculation</div>
+                </div>
+                <div class="use-case">
+                    <img src="images/Chapter 5 UC3 Data Retrieval.png" alt="UC3: Data Retrieval" loading="lazy">
+                    <div class="use-case-label">UC3: Data Retrieval</div>
+                </div>
+                <div class="use-case">
+                    <img src="images/Chapter 5 UC4 Report generation.png" alt="UC4: Report Generation" loading="lazy">
+                    <div class="use-case-label">UC4: Report Generation</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GUI Interface -->
+        <div class="gui-section">
+            <h3 class="section-header">Web Interface</h3>
+            <div class="gui-full">
+                <img src="images/GUI Interface Design.png" alt="GUI Interface Design" loading="lazy">
+            </div>
+        </div>
+
+        <!-- Interactive Demo Steps -->
+        <div class="demo-section">
+            <h3 class="section-header">Interactive Workflow</h3>
+            <div class="screenshot-grid">
+                <div class="screenshot">
+                    <img src="images/Step 1.png" alt="Step 1: Company & Year Selection" loading="lazy">
+                    <div class="screenshot-label">Step 1: Select Company & Year</div>
+                </div>
+                <div class="screenshot">
+                    <img src="images/Step 2.png" alt="Step 2: Framework & Category Selection" loading="lazy">
+                    <div class="screenshot-label">Step 2: Choose Framework & Category</div>
+                </div>
+                <div class="screenshot">
+                    <img src="images/Step 3.png" alt="Step 3: Metric Calculation & Report" loading="lazy">
+                    <div class="screenshot-label">Step 3: Calculate Metrics & Generate Report</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generated Report Samples -->
+        <div class="report-section">
+            <h3 class="section-header">Generated Report Sample</h3>
+            <div class="report-grid">
+                <div class="report-sample">
+                    <img src="images/Generated Report Sample Part 1-ESG_Report_Taiwan_Semiconductor_Manufacturing_Co_Ltd_2023_20260310_115410.png" alt="Report Sample Part 1" loading="lazy">
+                    <div class="report-label">Cover Page & Executive Summary</div>
+                </div>
+                <div class="report-sample">
+                    <img src="images/Generated Report Sample Part 2-ESG_Report_Taiwan_Semiconductor_Manufacturing_Co_Ltd_2023_20260310_115410.png" alt="Report Sample Part 2" loading="lazy">
+                    <div class="report-label">Metrics Table & Data Lineage</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance -->
+        <div class="performance-section">
+            <h3 class="section-header">System Performance Analysis</h3>
+            <div class="perf-img">
+                <img src="images/comprehensive_performance_analysis (1).png" alt="Performance Analysis" loading="lazy">
+            </div>
+        </div>
+
+        <!-- Competency Questions -->
+        <div class="cq-section">
+            <h3 class="section-header">Competency Questions (CQ1&ndash;CQ7)</h3>
+            <table class="cq-table">
+                <thead>
+                    <tr>
+                        <th>CQ</th>
+                        <th>Question</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>CQ1</td>
+                        <td>Which reporting framework applies to a given industry?</td>
+                    </tr>
+                    <tr>
+                        <td>CQ2</td>
+                        <td>What categories are included in the framework?</td>
+                    </tr>
+                    <tr>
+                        <td>CQ3</td>
+                        <td>Which metrics belong to a given category?</td>
+                    </tr>
+                    <tr>
+                        <td>CQ4</td>
+                        <td>How is a metric calculated (direct measurement or model)?</td>
+                    </tr>
+                    <tr>
+                        <td>CQ5</td>
+                        <td>What input data points does a calculation model require?</td>
+                    </tr>
+                    <tr>
+                        <td>CQ6</td>
+                        <td>What is the model equation/implementation?</td>
+                    </tr>
+                    <tr>
+                        <td>CQ7</td>
+                        <td>Where does each data point originate (dataset variable mapping)?</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Tech Stack -->
+        <div class="tech-section">
+            <h3 class="section-header">Tech Stack</h3>
+            <div class="tech-grid">
+                <span class="tech-tag">Python</span>
+                <span class="tech-tag">Flask</span>
+                <span class="tech-tag">RDFLib</span>
+                <span class="tech-tag">SPARQL</span>
+                <span class="tech-tag">Pandas</span>
+                <span class="tech-tag">ReportLab</span>
+                <span class="tech-tag">python-docx</span>
+                <span class="tech-tag">RDF/Turtle</span>
+                <span class="tech-tag">HTML/CSS/JS</span>
+                <span class="tech-tag">REST API</span>
+                <span class="tech-tag">Microservices</span>
+                <span class="tech-tag">SASB Standards</span>
+            </div>
+        </div>
+
+        <!-- Citation -->
+        <div class="citation-section">
+            <div class="citation-header">
+                <span class="citation-title">Citation</span>
+                <button class="copy-btn" onclick="copyBibtex()">Copy BibTeX</button>
+            </div>
+            <div class="citation-code">
+                <pre id="bibtex">@article{yu2024ontology,
+  title={Ontology-Driven Architecture for Managing Environmental, Social, and Governance Metrics},
+  author={Yu, Mingqin and Rabhi, Fethi A. and Bandara, Madhushi},
+  journal={Electronics},
+  volume={13},
+  number={9},
+  pages={1719},
+  year={2024},
+  publisher={MDPI},
+  doi={10.3390/electronics13091719}
+}</pre>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Built by <a href="https://inspiring-ming.github.io/Ming-sGalaxyWorld/" target="_blank">Mingqin (Jasmin) Yu</a> &middot; UNSW Sydney &middot; 2025</p>
+        </div>
+    </div>
+
+    <script>
+        function copyBibtex() {
+            const bibtex = document.getElementById('bibtex').textContent;
+            navigator.clipboard.writeText(bibtex).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy BibTeX';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
