@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ontology-driven Metric System for Sustainability Report Generation</title>
+    <title>An Ontology-driven Service-oriented System for ESG Metric Computation and Reporting</title>
     <style>
         * {
             margin: 0;
@@ -346,43 +346,6 @@
             display: block;
         }
 
-        /* CQ Section */
-        .cq-section {
-            margin-bottom: 45px;
-            animation: fadeInUp 0.8s ease-out 0.9s both;
-        }
-
-        .cq-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-
-        .cq-table th {
-            background: linear-gradient(135deg, #0f3460 0%, #3282b8 100%);
-            color: white;
-            padding: 12px 16px;
-            text-align: left;
-            font-weight: 600;
-        }
-
-        .cq-table td {
-            padding: 10px 16px;
-            border-bottom: 1px solid #e2e8f0;
-            color: #4a5568;
-        }
-
-        .cq-table tr:hover {
-            background: #f7fafc;
-        }
-
-        .cq-table th:first-child,
-        .cq-table td:first-child {
-            font-weight: 600;
-            color: #0f3460;
-            width: 50px;
-        }
-
         /* Tech Stack */
         .tech-section {
             margin-bottom: 45px;
@@ -528,7 +491,7 @@
 <body>
     <div class="container">
         <!-- Header -->
-        <h1 class="logo">Ontology-driven Metric System for Sustainability Report Generation</h1>
+        <h1 class="logo">An Ontology-driven Service-oriented System for ESG Metric Computation and Reporting</h1>
 
         <div class="badge-row">
             <span class="badge badge-accent">422K+ ESG Records</span>
@@ -536,7 +499,7 @@
 
         <!-- Description -->
         <p class="description">
-            An ontology-driven ESG metric system that uses the ESGMKG knowledge graph (525 RDF triples) as its authoritative knowledge source to govern end-to-end metric execution and report generation. The system interprets ontology-defined relationships to identify context-appropriate metrics, distinguish between directly measured and derived metrics, resolve declared metric dependencies, and coordinate access to data sources and executable calculation models &mdash; covering 40+ companies across semiconductors and commercial banking.
+            This project presents an ontology-driven ESG metric system built on the ESG Metric Knowledge Graph (ESGMKG). The system operationalises ESG metric knowledge to support context-aware metric discovery, dependency-aware computation, and provenance-preserving ESG report generation. Rather than relying on hard-coded logic, the system interprets ontology-defined relationships at runtime to identify applicable metrics, distinguish between directly measured and derived metrics, resolve metric dependencies, and coordinate access to datasets and executable calculation models. The current prototype is evaluated using ESG and financial data for 48 semiconductor companies. For the GHG Emission Intensity example reported in the paper, the corresponding ESGMKG execution path is represented by 14 RDF triples linking the industry, framework, category, metric, calculation model, dataset variables, data sources, and executable implementation.
         </p>
 
         <!-- Links -->
@@ -549,7 +512,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                 Live Demo
             </a>
-            <a href="https://doi.org/10.3390/electronics13091719" class="link-btn secondary" target="_blank">
+            <a href="https://drive.google.com/file/d/17Gb3djiFR0hxL6ljZxkL7HWNP15EM8zT/view?usp=sharing" class="link-btn secondary" target="_blank">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 Related Paper
             </a>
@@ -561,19 +524,19 @@
             <div class="features">
                 <div class="feature">
                     <h3>Knowledge Graph Service</h3>
-                    <p>RDF/SPARQL-based ontology serving CQ1&ndash;CQ7 competency questions. Maps industries to frameworks, categories, metrics, and calculation models.</p>
+                    <p>Provides structured access to ESGMKG through RDF and SPARQL queries. It retrieves ontology-defined relationships among industries, reporting frameworks, categories, metrics, dependencies, and calculation models.</p>
                 </div>
                 <div class="feature">
                     <h3>Data Retrieval Service</h3>
-                    <p>Coordinates access to external CSV datasets (422K+ records). Retrieves company-specific ESG data elements through controlled service interactions.</p>
+                    <p>Retrieves ESG and financial data values from external datasets based on mappings defined in ESGMKG. It supports consistent access to company- and year-specific inputs required for metric computation.</p>
                 </div>
                 <div class="feature">
                     <h3>Calculation Service</h3>
-                    <p>Dependency-aware metric computation. Distinguishes direct measurement from derived metrics and invokes appropriate calculation models.</p>
+                    <p>Performs dependency-aware metric computation. It determines whether a metric is directly measured or derived, resolves required inputs recursively, and invokes the corresponding executable model implementation.</p>
                 </div>
                 <div class="feature">
                     <h3>Report Service</h3>
-                    <p>Assembles computed metrics into structured PDF and Word reports with executive summary, data lineage, and methodology sections.</p>
+                    <p>Generates structured ESG reports by combining computed metric values with contextual metadata and provenance information, including data lineage and applied calculation methods.</p>
                 </div>
             </div>
         </div>
@@ -651,49 +614,6 @@
             </div>
         </div>
 
-        <!-- Competency Questions -->
-        <div class="cq-section">
-            <h3 class="section-header">Competency Questions (CQ1&ndash;CQ7)</h3>
-            <table class="cq-table">
-                <thead>
-                    <tr>
-                        <th>CQ</th>
-                        <th>Question</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>CQ1</td>
-                        <td>Which reporting framework applies to a given industry?</td>
-                    </tr>
-                    <tr>
-                        <td>CQ2</td>
-                        <td>What categories are included in the framework?</td>
-                    </tr>
-                    <tr>
-                        <td>CQ3</td>
-                        <td>Which metrics belong to a given category?</td>
-                    </tr>
-                    <tr>
-                        <td>CQ4</td>
-                        <td>How is a metric calculated (direct measurement or model)?</td>
-                    </tr>
-                    <tr>
-                        <td>CQ5</td>
-                        <td>What input data points does a calculation model require?</td>
-                    </tr>
-                    <tr>
-                        <td>CQ6</td>
-                        <td>What is the model equation/implementation?</td>
-                    </tr>
-                    <tr>
-                        <td>CQ7</td>
-                        <td>Where does each data point originate (dataset variable mapping)?</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
         <!-- Tech Stack -->
         <div class="tech-section">
             <h3 class="section-header">Tech Stack</h3>
@@ -721,7 +641,7 @@
             </div>
             <div class="citation-code">
                 <pre id="bibtex">@inproceedings{anonymous2026ontology,
-  title={Ontology-driven Metric System for Sustainability Report Generation},
+  title={An Ontology-driven Service-oriented System for ESG Metric Computation and Reporting},
   author={Anonymous},
   booktitle={IEEE International Conference on Web Services (ICWS)},
   year={2026},
