@@ -328,22 +328,69 @@
             color: #2d3748;
         }
 
-        /* Performance Section */
-        .performance-section {
+        /* Evaluation Section */
+        .evaluation-section {
             margin-bottom: 45px;
             animation: fadeInUp 0.8s ease-out 0.85s both;
         }
 
-        .perf-img {
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        .eval-table-wrapper {
+            margin-bottom: 30px;
         }
 
-        .perf-img img {
+        .eval-table-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .eval-table {
             width: 100%;
-            height: auto;
-            display: block;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .eval-table th {
+            background: linear-gradient(135deg, #0f3460 0%, #3282b8 100%);
+            color: white;
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.82rem;
+        }
+
+        .eval-table td {
+            padding: 8px 14px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #4a5568;
+            font-size: 0.83rem;
+        }
+
+        .eval-table tr:hover {
+            background: #f7fafc;
+        }
+
+        .eval-table code {
+            background: #edf2f7;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.78rem;
+            color: #0f3460;
+        }
+
+        .eval-table .uc-label {
+            font-weight: 600;
+            color: #0f3460;
+            white-space: nowrap;
+        }
+
+        .eval-table .highlight {
+            font-weight: 600;
+            color: #0f3460;
         }
 
         /* Tech Stack */
@@ -606,11 +653,174 @@
             </div>
         </div>
 
-        <!-- Performance -->
-        <div class="performance-section">
-            <h3 class="section-header">System Performance Analysis</h3>
-            <div class="perf-img">
-                <img src="images/comprehensive_performance_analysis (1).png" alt="Performance Analysis" loading="lazy">
+        <!-- Evaluation -->
+        <div class="evaluation-section">
+            <h3 class="section-header">Evaluation</h3>
+
+            <!-- Table V -->
+            <div class="eval-table-wrapper">
+                <div class="eval-table-title">Table V &mdash; Average Response Times of API Endpoints Grouped by Use Case</div>
+                <table class="eval-table">
+                    <thead>
+                        <tr>
+                            <th>Use Case</th>
+                            <th>ID</th>
+                            <th>API Endpoint</th>
+                            <th>Avg. Time (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td rowspan="6" class="uc-label">UC1</td>
+                            <td>DR1</td>
+                            <td><code>/api/DRservice/companies/all</code></td>
+                            <td>8.2</td>
+                        </tr>
+                        <tr>
+                            <td>DR2</td>
+                            <td><code>/api/DRservice/companies/{name}/years</code></td>
+                            <td>5.4</td>
+                        </tr>
+                        <tr>
+                            <td>KG2</td>
+                            <td><code>/api/KGservice/industries/{id}/frameworks</code></td>
+                            <td>12.3</td>
+                        </tr>
+                        <tr>
+                            <td>KG3</td>
+                            <td><code>/api/KGservice/frameworks/{id}/categories</code></td>
+                            <td>14.1</td>
+                        </tr>
+                        <tr>
+                            <td>KG4</td>
+                            <td><code>/api/KGservice/categories/{id}/metrics</code></td>
+                            <td>15.8</td>
+                        </tr>
+                        <tr>
+                            <td rowspan="4" class="uc-label">UC2</td>
+                            <td>KG5</td>
+                            <td><code>/api/KGservice/metrics/{id}/models</code></td>
+                            <td>11.2</td>
+                        </tr>
+                        <tr>
+                            <td>KG6</td>
+                            <td><code>/api/KGservice/models/{id}/inputs</code></td>
+                            <td>13.4</td>
+                        </tr>
+                        <tr>
+                            <td>KG7</td>
+                            <td><code>/api/KGservice/models/{id}/implementation</code></td>
+                            <td>14.9</td>
+                        </tr>
+                        <tr>
+                            <td>CS1</td>
+                            <td><code>/api/CSservice/calculate</code></td>
+                            <td class="highlight">141.3</td>
+                        </tr>
+                        <tr>
+                            <td rowspan="2" class="uc-label">UC3</td>
+                            <td>KG8</td>
+                            <td><code>/api/KGservice/variables/{id}/datasource</code></td>
+                            <td>10.6</td>
+                        </tr>
+                        <tr>
+                            <td>DR4</td>
+                            <td><code>/api/DRservice/values/{company}/{year}/{variable}</code></td>
+                            <td>12.1</td>
+                        </tr>
+                        <tr>
+                            <td rowspan="2" class="uc-label">UC4</td>
+                            <td>RS1</td>
+                            <td><code>/api/RSservice/reports/generate</code></td>
+                            <td>35.4</td>
+                        </tr>
+                        <tr>
+                            <td>RS2</td>
+                            <td><code>/api/RSservice/reports/download/{filename}</code></td>
+                            <td>8.7</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table VI -->
+            <div class="eval-table-wrapper">
+                <div class="eval-table-title">Table VI &mdash; Average Response Time of API Services by Functional Layer</div>
+                <table class="eval-table">
+                    <thead>
+                        <tr>
+                            <th>Service</th>
+                            <th>Endpoints</th>
+                            <th>Primary Operations</th>
+                            <th>Avg. Time (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="highlight">Data Retrieval Service</td>
+                            <td>DR1, DR2, DR4</td>
+                            <td>CSV-based data retrieval and company enumeration</td>
+                            <td>10.8</td>
+                        </tr>
+                        <tr>
+                            <td class="highlight">Knowledge Graph Service</td>
+                            <td>KG2&ndash;KG8</td>
+                            <td>SPARQL querying and RDF graph traversal</td>
+                            <td>13.8</td>
+                        </tr>
+                        <tr>
+                            <td class="highlight">Calculation Service</td>
+                            <td>CS1</td>
+                            <td>Model orchestration and dependency resolution</td>
+                            <td>141.3</td>
+                        </tr>
+                        <tr>
+                            <td class="highlight">Report Service</td>
+                            <td>RS1, RS2</td>
+                            <td>Document generation and file serving</td>
+                            <td>35.4</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table VII -->
+            <div class="eval-table-wrapper">
+                <div class="eval-table-title">Table VII &mdash; Scalability Assessment of Dataset Loading and Query Performance</div>
+                <table class="eval-table">
+                    <thead>
+                        <tr>
+                            <th>Dataset Size</th>
+                            <th>Companies</th>
+                            <th>Records</th>
+                            <th>Load (s)</th>
+                            <th>Query (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Small-scale</td>
+                            <td>12</td>
+                            <td>2,615</td>
+                            <td>0.2</td>
+                            <td>4.8</td>
+                        </tr>
+                        <tr>
+                            <td>Medium-scale</td>
+                            <td>24</td>
+                            <td>5,237</td>
+                            <td>0.4</td>
+                            <td>5.2</td>
+                        </tr>
+                        <tr>
+                            <td>Full-scale</td>
+                            <td>48</td>
+                            <td>10,459</td>
+                            <td>0.8</td>
+                            <td>5.6</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
