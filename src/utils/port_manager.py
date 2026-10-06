@@ -9,7 +9,7 @@ from typing import Optional
 class PortManager:
     """Utility to manage Flask application ports consistently"""
     
-    DEFAULT_PORT = 5000
+    DEFAULT_PORT = 8080
     BACKUP_PORTS = [5001, 5002, 5003, 5004, 5005]
     
     @staticmethod

@@ -31,7 +31,7 @@ To expose your local server via ngrok:
 python run_comprehensive_system_demo.py
 
 # 2. In a separate terminal, start ngrok with the custom domain
-ngrok http 5000 --domain=esgalaxy.com.ngrok.dev
+ngrok http 8080 --domain=esgalaxy.com.ngrok.dev
 ```
 
 This requires an ngrok account with the `esgalaxy.com.ngrok.dev` domain configured.
@@ -85,14 +85,14 @@ pip install -r requirements.txt
 python run_comprehensive_system_demo.py
 ```
 
-The system starts on port 5000 (auto-increments if occupied). Open `http://localhost:5000/` in a browser to access the web interface.
+The system starts on port 8080 (auto-increments if occupied). Open `http://localhost:8080/` in a browser to access the web interface.
 
 ### Quick API Test
 
 ```bash
-curl http://localhost:5000/api/KGservice/industries
-curl http://localhost:5000/api/DRservice/industries/semiconductors/companies
-curl http://localhost:5000/api/SYSservice/health
+curl http://localhost:8080/api/KGservice/industries
+curl http://localhost:8080/api/DRservice/industries/semiconductors/companies
+curl http://localhost:8080/api/SYSservice/health
 ```
 
 ---
@@ -283,7 +283,7 @@ python run_comprehensive_system_demo.py
 
 ### Port Management
 
-The system auto-detects available ports starting from 5000. To specify a port:
+The system auto-detects available ports starting from 8080. Port 5000 is avoided because macOS AirPlay Receiver binds it by default. To specify a port:
 
 ```bash
 python run_comprehensive_system_demo.py --port 8080

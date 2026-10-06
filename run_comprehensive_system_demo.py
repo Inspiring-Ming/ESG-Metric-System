@@ -3,8 +3,8 @@
 COMPREHENSIVE ESG SYSTEM DEMONSTRATION
 
 This script starts the complete ESG Knowledge Graph system with:
-✅ Web Interface (Frontend) - Available at http://localhost:5000/
-✅ REST API (Backend) - Available at http://localhost:5000/api/...
+✅ Web Interface (Frontend) - Available at http://localhost:8080/
+✅ REST API (Backend) - Available at http://localhost:8080/api/...
 ✅ 422K+ ESG records from real companies
 ✅ All calculation services and knowledge graph queries
 
@@ -29,8 +29,8 @@ def main():
     parser = argparse.ArgumentParser(description="ESG Knowledge Graph System - Web Service Demo")
     parser.add_argument('--eval-only', action='store_true', 
                        help='Run evaluation only (no web server)')
-    parser.add_argument('--port', type=int, default=5000,
-                       help='Port to run the web server on (default: 5000)')
+    parser.add_argument('--port', type=int, default=8080,
+                       help='Port to run the web server on (default: 8080)')
     args = parser.parse_args()
     
     print("🌟 ESG KNOWLEDGE GRAPH SYSTEM - WEB SERVICE DEMO")
