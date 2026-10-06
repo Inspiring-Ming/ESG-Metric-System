@@ -582,6 +582,13 @@ class DataRetrievalService:
         # Ensure datasets are loaded (lazy loading)
         self._ensure_datasets_loaded()
 
+        # Financial variables (e.g. revenue, `revt`) live in the WRDS financial
+        # dataset, not in the Eurofidai environment datasets. Without this
+        # branch `revt` fell through _map_sasb_to_external to its default,
+        # ENERGYUSETOTAL, so total energy use (GJ) was used as revenue.
+        if metric_name in self.WRDS_FINANCIAL_VARIABLES:
+            return self._get_wrds_financial_value(company_name, year, metric_name)
+
         try:
             # Check if metric_name is already a dataset variable (uppercase, specific patterns)
             # If it looks like a dataset variable, use it directly
@@ -750,6 +757,36 @@ class DataRetrievalService:
             import traceback
             traceback.print_exc()
             return None
+
+    WRDS_FINANCIAL_VARIABLES = {"revt"}
+    WRDS_FINANCIAL_FILES = (
+        "Semiconductor_WRDS_FinancialData(NorthAmerica).csv",
+    )
+
+    def _get_wrds_financial_value(self, company_name: str, year: str,
+                                  variable: str) -> Optional[float]:
+        """Return a WRDS financial variable (e.g. revt, USD million)."""
+        if getattr(self, "_wrds_df", None) is None:
+            frames = []
+            for name in self.WRDS_FINANCIAL_FILES:
+                path = self.external_dataset_path.parent / name
+                if path.exists():
+                    frames.append(pd.read_csv(path))
+            self._wrds_df = pd.concat(frames) if frames else pd.DataFrame()
+        df = self._wrds_df
+        if df.empty:
+            print(f"❌ No WRDS financial dataset available for {variable}")
+            return None
+        rows = df[(df["companyname"].str.upper() == company_name.upper())
+                  & (df["FinancialVariable"] == variable)
+                  & (df["Datadate"].astype(str).str[-4:] == str(year))]
+        if rows.empty:
+            print(f"❌ No WRDS {variable} for {company_name} ({year})")
+            return None
+        value = float(rows.iloc[0]["Value"])
+        print(f"✅ WRDS {variable} for {company_name} ({year}) = {value} "
+              f"{rows.iloc[0]['Unit']}")
+        return value
 
     def _map_sasb_to_external(self, sasb_metric: str) -> str:
         """Map SASB metric names to external dataset variables"""
